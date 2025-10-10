@@ -18,7 +18,7 @@
         
         <div class="tabs">
             <button class="tab-button active" data-tab="cutting">视频剪辑</button>
-            <button class="tab-button" data-tab="player">深度解读视频信息</button>
+            <button class="tab-button" data-tab="player">视频打标</button>
             <button class="tab-button" data-tab="concat">视频拼接</button>
         </div>
         
@@ -32,6 +32,12 @@
                             <input type="file" id="videoFile" accept="video/*" style="flex: 1;">
                             <button id="uploadVideoBtn" style="white-space: nowrap;">上传视频</button>
                         </div>
+                        <!-- 添加上传进度提示 -->
+                        <div id="videoUploadProgressContainer" style="display: none; margin-top: 10px;">
+                            <div>上传进度:</div>
+                            <progress id="videoUploadProgress" value="0" max="100" style="width: 100%;"></progress>
+                            <div id="videoUploadProgressText" style="text-align: center; font-size: 12px;">0%</div>
+                        </div>
                     </div>
                     
                     <div class="form-group">
@@ -39,6 +45,12 @@
                         <div style="display: flex; gap: 10px; align-items: center;">
                             <input type="file" id="excelFile" accept=".xlsx,.xls" style="flex: 1;">
                             <button id="uploadExcelBtn" style="white-space: nowrap;">上传Excel</button>
+                        </div>
+                        <!-- 添加Excel上传进度提示 -->
+                        <div id="excelUploadProgressContainer" style="display: none; margin-top: 10px;">
+                            <div>上传进度:</div>
+                            <progress id="excelUploadProgress" value="0" max="100" style="width: 100%;"></progress>
+                            <div id="excelUploadProgressText" style="text-align: center; font-size: 12px;">0%</div>
                         </div>
                     </div>
                     
@@ -110,6 +122,12 @@
                         <div style="display: flex; gap: 10px; align-items: center;">
                             <input type="file" id="playerVideoFile" accept="video/*" style="flex: 1;">
                         </div>
+                        <!-- 添加上传进度提示 -->
+                        <div id="uploadProgressContainer" style="display: none; margin-top: 10px;">
+                            <div>上传进度:</div>
+                            <progress id="uploadProgress" value="0" max="100" style="width: 100%;"></progress>
+                            <div id="uploadProgressText" style="text-align: center; font-size: 12px;">0%</div>
+                        </div>
                     </div>
                     
                     <div class="video-container">
@@ -118,8 +136,13 @@
                     
                     <div class="controls">
                         <button id="playPauseBtn">播放/暂停</button>
-                        <div class="progress-container">
-                            <progress id="videoProgress" value="0" max="100"></progress>
+                        <!-- 修改进度条为可拖动样式 -->
+                        <div class="progress-container" id="progressContainer">
+                            <div id="progressBarBackground">
+                                <div id="progressBarFill"></div>
+                            </div>
+                            <!-- 添加拖动时显示的时间帧 -->
+                            <div id="hoverTimeDisplay" style="position: absolute; top: -25px; background: rgba(0,0,0,0.8); color: white; padding: 2px 6px; border-radius: 3px; font-size: 12px; display: none;"></div>
                         </div>
                         <span id="currentTime">00:00:00</span> / <span id="duration">00:00:00</span>
                     </div>

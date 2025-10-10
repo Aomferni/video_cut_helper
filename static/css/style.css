@@ -324,8 +324,47 @@ video {
     margin-bottom: 15px;
 }
 
+/* 修改进度条样式为可拖动 */
 .progress-container {
     flex: 1;
+    height: 10px;
+    cursor: pointer;
+    position: relative;
+}
+
+#progressBarBackground {
+    width: 100%;
+    height: 100%;
+    background-color: #ddd;
+    border-radius: 5px;
+    position: relative;
+}
+
+#progressBarFill {
+    height: 100%;
+    background-color: #4CAF50;
+    border-radius: 5px;
+    width: 0%;
+    transition: width 0.1s;
+}
+
+#progressBarBackground:hover #progressBarFill {
+    background-color: #45a049;
+}
+
+/* 拖动时显示的时间帧样式 */
+#hoverTimeDisplay {
+    position: absolute;
+    top: -25px;
+    background: rgba(0,0,0,0.8);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 12px;
+    display: none;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 100;
 }
 
 progress {

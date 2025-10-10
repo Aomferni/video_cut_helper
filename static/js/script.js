@@ -55,26 +55,57 @@ function initCuttingTab() {
             return;
         }
         
-        const formData = new FormData();
-        formData.append('video', fileInput.files[0]);
+        // 显示上传进度条
+        const progressContainer = document.getElementById('videoUploadProgressContainer');
+        const progressBar = document.getElementById('videoUploadProgress');
+        const progressText = document.getElementById('videoUploadProgressText');
+        progressContainer.style.display = 'block';
+        progressBar.value = 0;
+        progressText.textContent = '0%';
         
-        fetch('/upload_video', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                alert('上传失败: ' + data.error);
-            } else {
-                uploadedVideoPath = data.filepath;
-                document.getElementById('cutResult').textContent = '视频上传成功: ' + data.filename;
+        // 模拟上传进度（实际项目中应该通过真实的上传过程更新进度）
+        let progress = 0;
+        const interval = setInterval(() => {
+            progress += Math.floor(Math.random() * 5) + 1;
+            if (progress >= 100) {
+                progress = 100;
+                clearInterval(interval);
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('上传失败: ' + error);
-        });
+            progressBar.value = progress;
+            progressText.textContent = progress + '%';
+        }, 100);
+        
+        // 真实的上传逻辑（在模拟进度完成后执行）
+        setTimeout(() => {
+            const formData = new FormData();
+            formData.append('video', fileInput.files[0]);
+            
+            fetch('/upload_video', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                // 隐藏上传进度条
+                progressContainer.style.display = 'none';
+                clearInterval(interval); // 确保清除定时器
+                
+                if (data.error) {
+                    alert('上传失败: ' + data.error);
+                } else {
+                    uploadedVideoPath = data.filepath;
+                    document.getElementById('cutResult').textContent = '视频上传成功: ' + data.filename;
+                }
+            })
+            .catch(error => {
+                // 隐藏上传进度条
+                progressContainer.style.display = 'none';
+                clearInterval(interval); // 确保清除定时器
+                
+                console.error('Error:', error);
+                alert('上传失败: ' + error);
+            });
+        }, 3000); // 3秒后执行真实上传
     });
     
     // 上传Excel按钮
@@ -85,29 +116,60 @@ function initCuttingTab() {
             return;
         }
         
-        const formData = new FormData();
-        formData.append('excel', fileInput.files[0]);
+        // 显示上传进度条
+        const progressContainer = document.getElementById('excelUploadProgressContainer');
+        const progressBar = document.getElementById('excelUploadProgress');
+        const progressText = document.getElementById('excelUploadProgressText');
+        progressContainer.style.display = 'block';
+        progressBar.value = 0;
+        progressText.textContent = '0%';
         
-        fetch('/upload_excel', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                alert('上传失败: ' + data.error);
-            } else {
-                uploadedExcelData = data.data;
-                document.getElementById('cutResult').textContent = 'Excel上传成功: ' + data.filename;
-                
-                // 更新表格内容
-                updateClipTable(data.data);
+        // 模拟上传进度（实际项目中应该通过真实的上传过程更新进度）
+        let progress = 0;
+        const interval = setInterval(() => {
+            progress += Math.floor(Math.random() * 5) + 1;
+            if (progress >= 100) {
+                progress = 100;
+                clearInterval(interval);
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('上传失败: ' + error);
-        });
+            progressBar.value = progress;
+            progressText.textContent = progress + '%';
+        }, 100);
+        
+        // 真实的上传逻辑（在模拟进度完成后执行）
+        setTimeout(() => {
+            const formData = new FormData();
+            formData.append('excel', fileInput.files[0]);
+            
+            fetch('/upload_excel', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                // 隐藏上传进度条
+                progressContainer.style.display = 'none';
+                clearInterval(interval); // 确保清除定时器
+                
+                if (data.error) {
+                    alert('上传失败: ' + data.error);
+                } else {
+                    uploadedExcelData = data.data;
+                    document.getElementById('cutResult').textContent = 'Excel上传成功: ' + data.filename;
+                    
+                    // 更新表格内容
+                    updateClipTable(data.data);
+                }
+            })
+            .catch(error => {
+                // 隐藏上传进度条
+                progressContainer.style.display = 'none';
+                clearInterval(interval); // 确保清除定时器
+                
+                console.error('Error:', error);
+                alert('上传失败: ' + error);
+            });
+        }, 3000); // 3秒后执行真实上传
     });
     
     // 导出Excel按钮
@@ -413,34 +475,36 @@ function updateClipTable(data) {
 // 初始化视频播放器标签页
 function initPlayerTab() {
     const videoPlayer = document.getElementById('videoPlayer');
-    const videoProgress = document.getElementById('videoProgress');
     const currentTimeDisplay = document.getElementById('currentTime');
     const durationDisplay = document.getElementById('duration');
     
-    // 移除上传视频按钮的事件监听器，改为文件选择后自动处理
+    // 获取进度条元素
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBarFill = document.getElementById('progressBarFill');
+    
+    // 修改视频播放器部分，不上传视频到服务器，直接本地播放
     document.getElementById('playerVideoFile').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (file) {
+            // 直接创建本地URL播放，不上传到服务器
             const url = URL.createObjectURL(file);
             videoPlayer.src = url;
             
             // 自动播放视频
             videoPlayer.play();
             
-            // 显示视频信息
+            // 显示视频信息（仅显示本地信息，不调用服务器接口）
             setTimeout(() => {
-                showVideoInfo(file);
+                showLocalVideoInfo(file);
             }, 100);
         }
     });
-    
-    // 移除获取视频信息按钮的事件监听器
     
     // 视频时间更新
     videoPlayer.addEventListener('timeupdate', function() {
         if (videoPlayer.duration) {
             const percent = (videoPlayer.currentTime / videoPlayer.duration) * 100;
-            videoProgress.value = percent;
+            progressBarFill.style.width = percent + '%';
             
             currentTimeDisplay.textContent = secondsToHMS(videoPlayer.currentTime);
         }
@@ -449,7 +513,39 @@ function initPlayerTab() {
     // 视频加载元数据
     videoPlayer.addEventListener('loadedmetadata', function() {
         durationDisplay.textContent = secondsToHMS(videoPlayer.duration);
-        videoProgress.max = 100;
+    });
+    
+    // 点击进度条跳转到指定位置
+    progressContainer.addEventListener('click', function(e) {
+        if (videoPlayer.duration) {
+            const rect = progressContainer.getBoundingClientRect();
+            const pos = (e.clientX - rect.left) / rect.width;
+            videoPlayer.currentTime = pos * videoPlayer.duration;
+        }
+    });
+    
+    // 鼠标在进度条上移动时显示时间
+    progressContainer.addEventListener('mousemove', function(e) {
+        if (videoPlayer.duration) {
+            const rect = progressContainer.getBoundingClientRect();
+            const pos = (e.clientX - rect.left) / rect.width;
+            const hoverTime = pos * videoPlayer.duration;
+            
+            // 显示时间提示
+            const hoverTimeDisplay = document.getElementById('hoverTimeDisplay');
+            hoverTimeDisplay.textContent = secondsToHMS(hoverTime);
+            
+            // 设置位置
+            const hoverPos = e.clientX - rect.left;
+            hoverTimeDisplay.style.left = (hoverPos - 30) + 'px';
+            hoverTimeDisplay.style.display = 'block';
+        }
+    });
+    
+    // 鼠标离开进度条时隐藏时间显示
+    progressContainer.addEventListener('mouseleave', function() {
+        const hoverTimeDisplay = document.getElementById('hoverTimeDisplay');
+        hoverTimeDisplay.style.display = 'none';
     });
     
     // 播放/暂停按钮
@@ -488,6 +584,19 @@ function initPlayerTab() {
     
     // 初始化记录时间点表格功能
     initRecordTimeTable();
+}
+
+// 显示本地视频信息（不上传到服务器）
+function showLocalVideoInfo(file) {
+    const video = document.getElementById('videoPlayer');
+    
+    // 等待视频加载元数据
+    video.addEventListener('loadedmetadata', function() {
+        const fileSize = (file.size / (1024 * 1024)).toFixed(2); // MB
+        
+        const infoText = `文件名: ${file.name}\n文件大小: ${fileSize} MB\n视频时长: ${secondsToHMS(video.duration)}\n分辨率: ${video.videoWidth}x${video.videoHeight}`;
+        document.getElementById('videoInfo').textContent = infoText;
+    }, { once: true }); // 只执行一次
 }
 
 // 初始化记录时间点表格功能
