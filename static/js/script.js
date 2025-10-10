@@ -20,7 +20,10 @@ document.addEventListener('DOMContentLoaded', function() {
     initConcatTab();
     
     // 定期更新输出文件列表
-    setInterval(updateOutputFilesList, 5000);
+    setInterval(function() {
+        updateOutputFilesList();
+        updateCutOutputFilesList();
+    }, 5000);
 });
 
 // 初始化标签页切换功能
@@ -261,6 +264,9 @@ function initCuttingTab() {
     document.getElementById('cutButton').addEventListener('click', function() {
         cutVideos();
     });
+    
+    // 初始化输出文件列表
+    updateCutOutputFilesList();
 }
 
 // 计算所有行的时长
@@ -504,6 +510,49 @@ function initRecordTimeTable() {
     // 计算时长按钮
     document.getElementById('calculateRecordDurationBtn').addEventListener('click', function() {
         calculateAllRecordDurations();
+    });
+    
+    // 同步到剪辑需求表格按钮
+    const syncToClipTableBtn = document.createElement('button');
+    syncToClipTableBtn.id = 'syncToClipTableBtn';
+    syncToClipTableBtn.textContent = '同步到剪辑需求表格';
+    syncToClipTableBtn.style.backgroundColor = '#9C27B0';
+    syncToClipTableBtn.style.marginLeft = '10px';
+    
+    const recordTable = document.querySelector('#player table');
+    const recordTableParent = recordTable.parentNode;
+    const recordActionsDiv = document.createElement('div');
+    recordActionsDiv.style.marginTop = '10px';
+    
+    // 复用现有的按钮
+    const addRecordRowBtn = document.getElementById('addRecordRowBtn');
+    const deleteSelectedRecordRowsBtn = document.getElementById('deleteSelectedRecordRowsBtn');
+    const calculateRecordDurationBtn = document.getElementById('calculateRecordDurationBtn');
+    
+    // 将按钮移动到新的容器中
+    recordActionsDiv.appendChild(addRecordRowBtn);
+    recordActionsDiv.appendChild(deleteSelectedRecordRowsBtn);
+    recordActionsDiv.appendChild(calculateRecordDurationBtn);
+    recordActionsDiv.appendChild(syncToClipTableBtn);
+    
+    // 添加导出Excel按钮
+    const exportRecordExcelBtn = document.createElement('button');
+    exportRecordExcelBtn.id = 'exportRecordExcelBtn';
+    exportRecordExcelBtn.textContent = '导出Excel文件';
+    exportRecordExcelBtn.style.backgroundColor = '#4CAF50';
+    exportRecordExcelBtn.style.float = 'right';
+    recordActionsDiv.appendChild(exportRecordExcelBtn);
+    
+    recordTableParent.insertBefore(recordActionsDiv, recordTable.nextSibling);
+    
+    // 添加同步按钮事件监听器
+    syncToClipTableBtn.addEventListener('click', function() {
+        syncRecordToClipTable();
+    });
+    
+    // 添加导出Excel按钮事件监听器
+    exportRecordExcelBtn.addEventListener('click', function() {
+        exportRecordToExcel();
     });
     
     // 为现有的复选框添加事件监听器
@@ -1104,7 +1153,7 @@ function cutVideos() {
         } else {
             resultBox.textContent = data.result;
             // 更新输出文件列表
-            updateOutputFilesList();
+            updateCutOutputFilesList();
         }
     })
     .catch(error => {
@@ -1153,5 +1202,194 @@ function concatVideos() {
     .catch(error => {
         console.error('Error:', error);
         resultBox.textContent = '处理失败: ' + error;
+    });
+}
+
+// 同步记录时间点表格到剪辑需求表格
+function syncRecordToClipTable() {
+    // 获取记录时间点表格的所有数据行
+    const recordRows = document.querySelectorAll('#player table tbody tr');
+    
+    if (recordRows.length === 0) {
+        alert('记录时间点表格中没有数据');
+        return;
+    }
+    
+    // 获取剪辑需求表格的tbody
+    const clipTableBody = document.querySelector('#clipTable tbody');
+    
+    // 遍历记录时间点表格的每一行
+    recordRows.forEach(recordRow => {
+        const cells = recordRow.querySelectorAll('td');
+        if (cells.length >= 6) {
+            // 获取记录时间点表格的数据
+            const startTime = cells[1].textContent;
+            const endTime = cells[2].textContent;
+            const title = cells[3].textContent;
+            
+            // 检查是否已经有相同的行（避免重复同步）
+            let isDuplicate = false;
+            const existingRows = clipTableBody.querySelectorAll('tr');
+            existingRows.forEach(existingRow => {
+                const existingCells = existingRow.querySelectorAll('td');
+                if (existingCells.length >= 6) {
+                    const existingStartTime = existingCells[1].textContent;
+                    const existingEndTime = existingCells[2].textContent;
+                    const existingTitle = existingCells[3].textContent;
+                    
+                    if (existingStartTime === startTime && existingEndTime === endTime && existingTitle === title) {
+                        isDuplicate = true;
+                    }
+                }
+            });
+            
+            // 如果不是重复行，则添加到剪辑需求表格
+            if (!isDuplicate) {
+                const newRow = clipTableBody.insertRow();
+                
+                // 添加复选框单元格
+                const checkboxCell = newRow.insertCell(0);
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.className = 'row-checkbox';
+                checkboxCell.appendChild(checkbox);
+                
+                const cell1 = newRow.insertCell(1);
+                const cell2 = newRow.insertCell(2);
+                const cell3 = newRow.insertCell(3);
+                const durationCell = newRow.insertCell(4);
+                const actionCell = newRow.insertCell(5);
+                
+                cell1.className = 'editable';
+                cell1.contentEditable = true;
+                cell1.textContent = startTime;
+                
+                cell2.className = 'editable';
+                cell2.contentEditable = true;
+                cell2.textContent = endTime;
+                
+                cell3.className = 'editable';
+                cell3.contentEditable = true;
+                cell3.textContent = title;
+                
+                // 计算时长
+                const duration = calculateDuration(startTime, endTime);
+                durationCell.className = 'duration-cell';
+                durationCell.textContent = duration;
+                
+                // 添加删除按钮
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-row-btn';
+                deleteBtn.textContent = '删除';
+                deleteBtn.addEventListener('click', function() {
+                    if (confirm('确定要删除这一行吗？')) {
+                        clipTableBody.removeChild(newRow);
+                        updateSelectAllCheckbox();
+                    }
+                });
+                actionCell.appendChild(deleteBtn);
+                
+                // 添加时间变化监听器以自动计算时长
+                cell1.addEventListener('input', function() {
+                    const duration = calculateDuration(cell1.textContent, cell2.textContent);
+                    durationCell.textContent = duration;
+                });
+                
+                cell2.addEventListener('input', function() {
+                    const duration = calculateDuration(cell1.textContent, cell2.textContent);
+                    durationCell.textContent = duration;
+                });
+                
+                // 添加点击事件以激活单元格
+                cell1.addEventListener('click', function() {
+                    setActiveCell(this);
+                });
+                
+                cell2.addEventListener('click', function() {
+                    setActiveCell(this);
+                });
+                
+                cell3.addEventListener('click', function() {
+                    setActiveCell(this);
+                });
+                
+                // 添加复选框事件监听器
+                checkbox.addEventListener('change', function() {
+                    updateSelectAllCheckbox();
+                });
+            }
+        }
+    });
+    
+    alert('已将记录时间点同步到剪辑需求表格');
+}
+
+// 导出记录时间点表格为Excel文件
+function exportRecordToExcel() {
+    // 获取记录时间点表格数据
+    const tableData = [];
+    const rows = document.querySelectorAll('#player table tbody tr');
+    
+    // 添加表头
+    tableData.push(['开始时间', '结束时间', '剪辑标题', '时长(分钟)']);
+    
+    // 添加数据行
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        if (cells.length >= 6) {  // 6列：checkbox, 开始时间, 结束时间, 剪辑标题, 时长, 操作
+            tableData.push([
+                cells[1].textContent,
+                cells[2].textContent,
+                cells[3].textContent,
+                cells[4].textContent
+            ]);
+        }
+    });
+    
+    // 发送到后端生成Excel文件
+    fetch('/export_excel', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            table_data: tableData
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // 下载生成的文件
+            window.open('/download/' + data.filename, '_blank');
+            alert('记录时间点Excel文件已生成并开始下载');
+        } else {
+            alert('导出失败: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('导出失败: ' + error);
+    });
+}
+
+// 更新视频剪辑输出文件列表
+function updateCutOutputFilesList() {
+    fetch('/list_output_files')
+    .then(response => response.json())
+    .then(data => {
+        const listElement = document.getElementById('cutOutputFilesList');
+        listElement.innerHTML = '';
+        
+        data.files.forEach(file => {
+            const listItem = document.createElement('li');
+            listItem.innerHTML = `
+                <span>${file.name} (${file.size})</span>
+                <a href="/download/${file.name}" target="_blank">下载</a>
+            `;
+            listElement.appendChild(listItem);
+        });
+    })
+    .catch(error => {
+        console.error('Error:', error);
     });
 }

@@ -212,6 +212,30 @@
             font-size: 24px;
             color: #4CAF50;
         }
+        
+        .links-section {
+            background-color: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        
+        .links-section h3 {
+            margin-top: 0;
+            color: #e65100;
+        }
+        
+        .links-section a {
+            display: inline-block;
+            margin: 5px 0;
+            color: #2196F3;
+            text-decoration: none;
+        }
+        
+        .links-section a:hover {
+            text-decoration: underline;
+        }
     </style>
     <script type="module">
         import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
@@ -223,6 +247,13 @@
         <a href="{{ url_for('index') }}" class="back-link">← 返回主页面</a>
         
         <h1>视频自动剪辑工具 - 项目介绍</h1>
+        
+        <!-- 链接部分 -->
+        <div class="links-section">
+            <h3>🔗 项目链接</h3>
+            <p><strong>项目在线使用地址：</strong><a href="https://videocutter.zeabur.app/" target="_blank">https://videocutter.zeabur.app/</a></p>
+            <p><strong>GitHub开源地址：</strong><a href="https://github.com/Aomferni/video_cut_helper" target="_blank">https://github.com/Aomferni/video_cut_helper</a></p>
+        </div>
         
         <!-- 面向泛人群的部分 -->
         <div class="section user-section">

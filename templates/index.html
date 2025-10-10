@@ -12,6 +12,8 @@
         <p class="description">上传原始视频文件和剪辑需求，或直接在表格中填写剪辑需求，自动完成视频剪辑</p>
         <p style="text-align: center; margin-bottom: 20px;">
             <a href="{{ url_for('about') }}" style="color: #4CAF50; text-decoration: none; font-weight: bold;">ℹ️ 项目介绍</a>
+            <span style="margin: 0 10px; color: #ccc;">|</span>
+            <a href="{{ url_for('manage') }}" style="color: #2196F3; text-decoration: none; font-weight: bold;">📁 文件管理</a>
         </p>
         
         <div class="tabs">
@@ -84,6 +86,11 @@
                 <div class="column">
                     <label>处理结果</label>
                     <div id="cutResult" class="result-box">请上传视频并填写剪辑需求，然后点击"开始剪辑"</div>
+                    
+                    <div class="output-files">
+                        <h3>输出文件</h3>
+                        <ul id="cutOutputFilesList"></ul>
+                    </div>
                     
                     <div style="margin-top: 20px; text-align: center;">
                         <button id="cutButton" style="padding: 15px 30px; font-size: 18px; background-color: #FF5722; box-shadow: 0 4px 8px rgba(255, 87, 34, 0.3);">
@@ -160,6 +167,7 @@
                         <button id="deleteSelectedRecordRowsBtn">删除选中行</button>
                         <button id="calculateRecordDurationBtn" style="background-color: #FF9800; margin-left: 10px;">计算时长</button>
                     </div>
+
                 </div>
                 
                 <div class="column">

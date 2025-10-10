@@ -279,6 +279,10 @@ def index():
 def about():
     return render_template('about.html')
 
+@app.route('/manage')
+def manage():
+    return render_template('manage.html')
+
 @app.route('/upload_video', methods=['POST'])
 def upload_video():
     if 'video' not in request.files:
@@ -388,6 +392,82 @@ def concat_videos_route():
     result = concatenate_videos(video_paths, output_path)
     
     return jsonify({'result': result, 'output_path': output_path if '✅' in result else None})
+
+@app.route('/list_all_files')
+def list_all_files():
+    """列出所有上传和输出文件"""
+    upload_dir = app.config['UPLOAD_FOLDER']
+    output_dir = app.config['OUTPUT_FOLDER']
+    
+    files = {
+        'uploads': [],
+        'outputs': []
+    }
+    
+    # 获取上传文件
+    if os.path.exists(upload_dir):
+        for filename in os.listdir(upload_dir):
+            filepath = os.path.join(upload_dir, filename)
+            if os.path.isfile(filepath):
+                file_size = os.path.getsize(filepath)
+                # 转换为MB
+                file_size_mb = round(file_size / (1024 * 1024), 2)
+                files['uploads'].append({
+                    'name': filename,
+                    'path': filepath,
+                    'size': f"{file_size_mb} MB",
+                    'type': 'upload'
+                })
+    
+    # 获取输出文件
+    if os.path.exists(output_dir):
+        for filename in os.listdir(output_dir):
+            filepath = os.path.join(output_dir, filename)
+            if os.path.isfile(filepath):
+                file_size = os.path.getsize(filepath)
+                # 转换为MB
+                file_size_mb = round(file_size / (1024 * 1024), 2)
+                files['outputs'].append({
+                    'name': filename,
+                    'path': filepath,
+                    'size': f"{file_size_mb} MB",
+                    'type': 'output'
+                })
+    
+    return jsonify(files)
+
+@app.route('/delete_file', methods=['POST'])
+def delete_file():
+    """删除指定文件"""
+    data = request.get_json()
+    filepath = data.get('filepath')
+    file_type = data.get('type')  # 'upload' 或 'output'
+    
+    if not filepath:
+        return jsonify({'success': False, 'error': '文件路径不能为空'})
+    
+    # 确保文件路径在允许的目录内
+    upload_dir = os.path.abspath(app.config['UPLOAD_FOLDER'])
+    output_dir = os.path.abspath(app.config['OUTPUT_FOLDER'])
+    file_path = os.path.abspath(filepath)
+    
+    if file_type == 'upload':
+        if not file_path.startswith(upload_dir):
+            return jsonify({'success': False, 'error': '不允许删除此目录下的文件'})
+    elif file_type == 'output':
+        if not file_path.startswith(output_dir):
+            return jsonify({'success': False, 'error': '不允许删除此目录下的文件'})
+    else:
+        return jsonify({'success': False, 'error': '无效的文件类型'})
+    
+    try:
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            return jsonify({'success': True, 'message': '文件删除成功'})
+        else:
+            return jsonify({'success': False, 'error': '文件不存在'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'删除文件时出错: {str(e)}'})
 
 @app.route('/list_output_files')
 def list_output_files():

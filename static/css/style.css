@@ -144,6 +144,34 @@ button:hover {
     background-color: #45a049;
 }
 
+#exportRecordExcelBtn {
+    padding: 10px 15px;
+    font-size: 14px;
+    background-color: #4CAF50;
+    white-space: nowrap;
+}
+
+#exportRecordExcelBtn:hover {
+    background-color: #45a049;
+}
+
+#syncToClipTableBtn {
+    padding: 10px 15px;
+    font-size: 14px;
+    background-color: #9C27B0;
+    white-space: nowrap;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+#syncToClipTableBtn:hover {
+    background-color: #7B1FA2;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
 #calculateDurationBtn {
     padding: 10px 15px;
     font-size: 14px;
@@ -390,23 +418,62 @@ tr:nth-child(even) {
     color: #333;
 }
 
+.output-files {
+    margin-top: 20px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #f9f9f9;
+}
+
+.output-files h3 {
+    margin-top: 0;
+    color: #333;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
 .uploaded-videos ul,
 .output-files ul {
     list-style-type: none;
     padding: 0;
+    max-height: 300px;
+    overflow-y: auto;
 }
 
 .uploaded-videos li,
 .output-files li {
-    padding: 8px;
+    padding: 10px;
     border-bottom: 1px solid #eee;
     display: flex;
     justify-content: space-between;
+    align-items: center;
+    transition: background-color 0.2s;
+}
+
+.uploaded-videos li:hover,
+.output-files li:hover {
+    background-color: #f0f8ff;
 }
 
 .uploaded-videos li:last-child,
 .output-files li:last-child {
     border-bottom: none;
+}
+
+.output-files a {
+    display: inline-block;
+    padding: 5px 10px;
+    background-color: #4CAF50;
+    color: white;
+    text-decoration: none;
+    border-radius: 3px;
+    font-size: 12px;
+    transition: background-color 0.2s;
+}
+
+.output-files a:hover {
+    background-color: #45a049;
 }
 
 /* 拖拽排序样式 */

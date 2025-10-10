@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件管理 - 视频自动剪辑工具</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .file-manager {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .file-section {
+            flex: 1;
+            min-width: 300px;
+            box-sizing: border-box;
+        }
+        
+        .file-list {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .file-list h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        
+        .file-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .file-item:hover {
+            background-color: #f0f8ff;
+        }
+        
+        .file-item:last-child {
+            border-bottom: none;
+        }
+        
+        .file-info {
+            flex: 1;
+        }
+        
+        .file-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .file-size {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .file-actions {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .file-actions a {
+            display: inline-block;
+            padding: 5px 10px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 3px;
+            font-size: 12px;
+            transition: background-color 0.2s;
+        }
+        
+        .file-actions a:hover {
+            background-color: #45a049;
+        }
+        
+        .delete-btn {
+            background-color: #f44336 !important;
+        }
+        
+        .delete-btn:hover {
+            background-color: #d32f2f !important;
+        }
+        
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #4CAF50;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        
+        .refresh-btn {
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        
+        .refresh-btn:hover {
+            background-color: #0b7dda;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="{{ url_for('index') }}" class="back-link">← 返回主页面</a>
+        
+        <h1>文件管理</h1>
+        <p class="description">管理上传的文件和生成的输出文件</p>
+        
+        <button id="refreshBtn" class="refresh-btn">刷新文件列表</button>
+        
+        <div class="file-manager">
+            <div class="file-section">
+                <div class="file-list">
+                    <h3>上传文件 (uploads)</h3>
+                    <div id="uploadFilesList">
+                        <!-- 上传文件列表将通过JavaScript动态加载 -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="file-section">
+                <div class="file-list">
+                    <h3>输出文件 (output)</h3>
+                    <div id="outputFilesList">
+                        <!-- 输出文件列表将通过JavaScript动态加载 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 页面加载时获取文件列表
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAllFiles();
+        });
+        
+        // 刷新按钮事件
+        document.getElementById('refreshBtn').addEventListener('click', function() {
+            loadAllFiles();
+        });
+        
+        // 加载所有文件
+        function loadAllFiles() {
+            fetch('/list_all_files')
+            .then(response => response.json())
+            .then(data => {
+                // 更新上传文件列表
+                updateFileList('uploadFilesList', data.uploads, 'upload');
+                
+                // 更新输出文件列表
+                updateFileList('outputFilesList', data.outputs, 'output');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('加载文件列表失败: ' + error);
+            });
+        }
+        
+        // 更新文件列表
+        function updateFileList(containerId, files, type) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            if (files.length === 0) {
+                container.innerHTML = '<p>暂无文件</p>';
+                return;
+            }
+            
+            files.forEach(file => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                
+                fileItem.innerHTML = `
+                    <div class="file-info">
+                        <div class="file-name">${file.name}</div>
+                        <div class="file-size">${file.size}</div>
+                    </div>
+                    <div class="file-actions">
+                        <a href="/download/${file.name}" target="_blank">下载</a>
+                        <a href="#" class="delete-btn" data-filepath="${file.path}" data-type="${type}">删除</a>
+                    </div>
+                `;
+                
+                container.appendChild(fileItem);
+            });
+            
+            // 为删除按钮添加事件监听器
+            container.querySelectorAll('.delete-btn').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const filepath = this.getAttribute('data-filepath');
+                    const type = this.getAttribute('data-type');
+                    deleteFile(filepath, type);
+                });
+            });
+        }
+        
+        // 删除文件
+        function deleteFile(filepath, type) {
+            if (!confirm('确定要删除这个文件吗？')) {
+                return;
+            }
+            
+            fetch('/delete_file', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    filepath: filepath,
+                    type: type
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('文件删除成功');
+                    loadAllFiles(); // 刷新文件列表
+                } else {
+                    alert('删除失败: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('删除文件时出错: ' + error);
+            });
+        }
+    </script>
+</body>
+</html>

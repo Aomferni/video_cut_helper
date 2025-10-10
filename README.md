@@ -2,6 +2,11 @@
 
 基于Python Flask + FFmpeg的视频自动剪辑工具，支持视频剪辑、播放、信息查看和视频拼接功能。
 
+## 项目链接
+
+- **在线使用地址**：[https://videocutter.zeabur.app/](https://videocutter.zeabur.app/)
+- **GitHub开源地址**：[https://github.com/Aomferni/video_cut_helper](https://github.com/Aomferni/video_cut_helper)
+
 ## 功能特性
 
 1. **视频剪辑**：
@@ -17,6 +22,10 @@
 3. **视频拼接**：
    - 上传多个视频文件
    - 一键拼接为完整视频
+
+4. **文件管理**：
+   - 管理上传文件和输出文件
+   - 支持文件下载和删除操作
 
 ## 环境要求
 
@@ -134,6 +143,11 @@ python app.py
    - 上传多个视频文件
    - 设置输出文件名
    - 点击"开始拼接"
+
+5. 文件管理：
+   - 点击主页面的"文件管理"链接进入文件管理页面
+   - 查看上传文件和输出文件列表
+   - 支持下载和删除文件操作
 
 ## 项目结构
 
