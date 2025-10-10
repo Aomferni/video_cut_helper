@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>视频自动剪辑工具</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>视频自动剪辑工具</h1>
+        <p class="description">上传原始视频文件和剪辑需求，或直接在表格中填写剪辑需求，自动完成视频剪辑</p>
+        <p style="text-align: center; margin-bottom: 20px;">
+            <a href="{{ url_for('about') }}" style="color: #4CAF50; text-decoration: none; font-weight: bold;">ℹ️ 项目介绍</a>
+        </p>
+        
+        <div class="tabs">
+            <button class="tab-button active" data-tab="cutting">视频剪辑</button>
+            <button class="tab-button" data-tab="player">深度解读视频信息</button>
+            <button class="tab-button" data-tab="concat">视频拼接</button>
+        </div>
+        
+        <!-- 视频剪辑标签页 -->
+        <div id="cutting" class="tab-content active">
+            <div class="row">
+                <div class="column">
+                    <div class="form-group">
+                        <label for="videoFile">上传原始视频文件</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="file" id="videoFile" accept="video/*" style="flex: 1;">
+                            <button id="uploadVideoBtn" style="white-space: nowrap;">上传视频</button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="excelFile">上传剪辑需求Excel文件</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="file" id="excelFile" accept=".xlsx,.xls" style="flex: 1;">
+                            <button id="uploadExcelBtn" style="white-space: nowrap;">上传Excel</button>
+                        </div>
+                    </div>
+                    
+                    <div class="section-title">或者直接在下方表格中填写剪辑需求</div>
+                    
+                    <table id="clipTable">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="selectAllCheckbox"></th>
+                                <th>开始时间</th>
+                                <th>结束时间</th>
+                                <th>剪辑标题</th>
+                                <th>时长(分钟)</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><input type="checkbox" class="row-checkbox"></td>
+                                <td class="editable" contenteditable="true">00:00:00</td>
+                                <td class="editable" contenteditable="true">00:00:00</td>
+                                <td class="editable" contenteditable="true">片段1</td>
+                                <td class="duration-cell">0</td>
+                                <td><button class="delete-row-btn">删除</button></td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" class="row-checkbox"></td>
+                                <td class="editable" contenteditable="true">00:00:00</td>
+                                <td class="editable" contenteditable="true">00:00:00</td>
+                                <td class="editable" contenteditable="true">片段2</td>
+                                <td class="duration-cell">0</td>
+                                <td><button class="delete-row-btn">删除</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <div style="margin-top: 10px;">
+                        <button id="addRowBtn">添加行</button>
+                        <button id="deleteSelectedRowsBtn">删除选中行</button>
+                        <button id="calculateDurationBtn" style="background-color: #FF9800; margin-left: 10px;">计算时长</button>
+                        <button id="exportExcelBtn" style="background-color: #4CAF50; float: right;">导出Excel文件</button>
+                    </div>
+                </div>
+                
+                <div class="column">
+                    <label>处理结果</label>
+                    <div id="cutResult" class="result-box">请上传视频并填写剪辑需求，然后点击"开始剪辑"</div>
+                    
+                    <div style="margin-top: 20px; text-align: center;">
+                        <button id="cutButton" style="padding: 15px 30px; font-size: 18px; background-color: #FF5722; box-shadow: 0 4px 8px rgba(255, 87, 34, 0.3);">
+                            <span style="font-weight: bold;">▶</span> 开始剪辑
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 视频播放与信息标签页 -->
+        <div id="player" class="tab-content">
+            <div class="row">
+                <div class="column">
+                    <div class="form-group">
+                        <label for="playerVideoFile">上传视频文件</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="file" id="playerVideoFile" accept="video/*" style="flex: 1;">
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <video id="videoPlayer" controls></video>
+                    </div>
+                    
+                    <div class="controls">
+                        <button id="playPauseBtn">播放/暂停</button>
+                        <div class="progress-container">
+                            <progress id="videoProgress" value="0" max="100"></progress>
+                        </div>
+                        <span id="currentTime">00:00:00</span> / <span id="duration">00:00:00</span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="seekTime">快速定位到指定时间</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="text" id="seekTime" placeholder="00:00:00" value="00:00:00" style="flex: 1;">
+                            <button id="seekBtn" style="background-color: #2196F3; white-space: nowrap;">定位到指定时间</button>
+                        </div>
+                    </div>
+                    
+                    <div class="section-title">记录剪辑时间点</div>
+                    <p>点击下面的时间字段使其处于激活状态（黄色高亮），然后点击"记录当前时间"按钮：</p>
+                    
+                    <div style="margin-bottom: 10px;">
+                        <button id="recordTimeBtn" style="background-color: #2196F3;">记录当前时间</button>
+                    </div>
+                    
+                    <table>
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="selectRecordAllCheckbox"></th>
+                                <th>开始时间</th>
+                                <th>结束时间</th>
+                                <th>剪辑标题</th>
+                                <th>时长(分钟)</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><input type="checkbox" class="record-row-checkbox"></td>
+                                <td id="startTimeField" class="editable" contenteditable="true">00:00:00</td>
+                                <td id="endTimeField" class="editable" contenteditable="true">00:00:00</td>
+                                <td class="editable" contenteditable="true"></td>
+                                <td class="duration-cell">0</td>
+                                <td><button class="delete-record-row-btn">删除</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <div style="margin-top: 10px;">
+                        <button id="addRecordRowBtn">添加行</button>
+                        <button id="deleteSelectedRecordRowsBtn">删除选中行</button>
+                        <button id="calculateRecordDurationBtn" style="background-color: #FF9800; margin-left: 10px;">计算时长</button>
+                    </div>
+                </div>
+                
+                <div class="column">
+                    <label>视频信息详情</label>
+                    <div id="videoInfo" class="result-box" style="width: 100%; max-width: 100%; overflow-x: auto; white-space: pre-wrap;"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 视频拼接标签页 -->
+        <div id="concat" class="tab-content">
+            <div class="row">
+                <div class="column">
+                    <div class="form-group">
+                        <label for="concatVideoFiles">上传多个视频文件</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="file" id="concatVideoFiles" accept="video/*" multiple style="flex: 1;">
+                            <button id="uploadConcatVideosBtn" style="white-space: nowrap;">上传视频</button>
+                        </div>
+                    </div>
+                    
+                    <div class="uploaded-videos">
+                        <h3>已上传的视频文件</h3>
+                        <ul id="uploadedVideosList" class="sortable-list"></ul>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="outputFileName">输出文件名</label>
+                        <input type="text" id="outputFileName" value="拼接结果.mp4">
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button id="concatButton" style="padding: 15px 30px; font-size: 18px; background-color: #FF5722; box-shadow: 0 4px 8px rgba(255, 87, 34, 0.3);">
+                            <span style="font-weight: bold;">🔗</span> 开始拼接
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="column">
+                    <label>拼接结果</label>
+                    <div id="concatResult" class="result-box">请上传多个视频文件，然后点击"开始拼接"</div>
+                    
+                    <div class="output-files">
+                        <h3>输出文件</h3>
+                        <ul id="outputFilesList"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
