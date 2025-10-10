@@ -44,6 +44,52 @@
             font-family: 'Courier New', monospace;
             font-size: 14px;
             overflow-x: auto;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .code-header {
+            font-weight: bold;
+            color: #2e7d32;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+        
+        .code-content {
+            background-color: #fff;
+            padding: 10px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            white-space: pre;
+        }
+        
+        .project-structure {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .project-structure-header {
+            font-weight: bold;
+            color: #2e7d32;
+            margin-bottom: 15px;
+            font-size: 18px;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 8px;
+        }
+        
+        .project-structure-content {
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 4px;
+            white-space: pre;
+            overflow-x: auto;
+            line-height: 1.5;
         }
         
         .api-table {
@@ -195,8 +241,8 @@
             </div>
             
             <div class="feature-card">
-                <h4>📊 信息分析</h4>
-                <p>自动提取视频基本信息，帮助你更好地了解视频内容</p>
+                <h4>📊 视频打标</h4>
+                <p>播放视频，帮你更便捷地记录视频分段信息</p>
             </div>
             
             <h3 class="subsection-title">🚀 使用流程</h3>
@@ -268,56 +314,113 @@ graph TD
                 </div>
             </div>
             
-            <h3 class="subsection-title">📚 核心函数</h3>
+            <h3 class="subsection-title">📚 核心函数逻辑</h3>
             
-            <h4>1. 视频剪辑相关函数</h4>
-            <div class="code-block">
-// 零重编码精准切片
-def smart_cut(in_file, out_file, start, end):
-    """使用FFmpeg进行零重编码切片"""
-    cmd = [
+            <div class="feature-card">
+                <h4>1. 视频剪辑函数 - smart_cut</h4>
+                <p><strong>功能：</strong>使用FFmpeg进行零重编码精准切片，速度极快且保持原始质量</p>
+                <div class="code-block">
+                        <div class="code-header">伪代码逻辑:</div>
+                        <div class="code-content">
+function smart_cut(input_file, output_file, start_time, end_time):
+    构建FFmpeg命令 = [
         FFMPEG_PATH,
-        '-i', in_file,
-        '-ss', str(start),
-        '-to', str(end),
-        '-c', 'copy',  # 零重编码
-        '-y',
-        out_file
+        '-i', input_file,     // 输入文件
+        '-ss', start_time,    // 开始时间
+        '-to', end_time,      // 结束时间
+        '-c', 'copy',         // 零重编码
+        '-y', output_file     // 输出文件
     ]
+    执行命令()
+    返回结果
+                        </div>
+                    </div>
+                </div>
                 
-// 根据DataFrame裁剪视频
-def cut_videos_from_dataframe(input_video_path, df):
-    """根据Excel数据裁剪视频片段"""
-    # 遍历数据帧中的每一行进行裁剪
-</div>
-            
-            <h4>2. 视频拼接相关函数</h4>
-            <div class="code-block">
-// 零重编码拼接
-def concatenate_videos(video_paths, output_path):
-    """使用FFmpeg进行零重编码拼接"""
-    # 生成concat清单文件
-    # 调用FFmpeg命令拼接视频
+                <div class="feature-card">
+                    <h4>2. 批量剪辑函数 - cut_videos_from_dataframe</h4>
+                    <p><strong>功能：</strong>根据Excel数据批量裁剪视频片段</p>
+                    <div class="code-block">
+                        <div class="code-header">伪代码逻辑:</div>
+                        <div class="code-content">
+function cut_videos_from_dataframe(video_path, excel_data):
+    for 每一行 in excel_data:
+        if 结束时间为空:
+            continue  // 跳过空行
+    
+        开始时间 = 行数据["开始时间"]
+        结束时间 = 行数据["结束时间"]
+        标题 = 行数据["剪辑标题"]
+    
+        // 转换时间格式
+        start_seconds = time_to_seconds(开始时间)
+        end_seconds = time_to_seconds(结束时间)
+    
+        // 执行剪辑
+        smart_cut(video_path, 输出路径, start_seconds, end_seconds)
+                        </div>
+                    </div>
+                </div>
                 
-// 回退拼接方案
-def fallback_concatenate_videos(video_paths, output_path):
-    """使用MoviePy进行拼接（回退方案）"""
-    # 使用MoviePy的concatenate_videoclips函数
-</div>
-            
-            <h4>3. 工具函数</h4>
-            <div class="code-block">
-// 时间转换函数
-def time_to_seconds(t):
-    """将时间字符串转换为秒数"""
+                <div class="feature-card">
+                    <h4>3. 视频拼接函数 - concatenate_videos</h4>
+                    <p><strong>功能：</strong>使用FFmpeg零重编码拼接多个视频文件</p>
+                    <div class="code-block">
+                        <div class="code-header">伪代码逻辑:</div>
+                        <div class="code-content">
+function concatenate_videos(video_list, output_path):
+    // 生成清单文件
+    创建清单文件()
+    for 视频 in video_list:
+        写入清单文件(视频路径)
+    
+    // 构建FFmpeg命令
+    命令 = [
+        FFMPEG_PATH,
+        '-f', 'concat',
+        '-safe', '0',
+        '-i', 清单文件,
+        '-c', 'copy',
+        '-y', output_path
+    ]
+    
+    结果 = 执行命令(命令)
+    if 结果.成功:
+        return 成功信息
+    else:
+        return 回退方案()  // MoviePy拼接
+                        </div>
+                    </div>
+                </div>
                 
-def seconds_to_time(seconds):
-    """将秒数转换为时间字符串"""
-                
-// 视频信息提取
-def get_video_info(video_path):
-    """获取视频基本信息"""
-</div>
+                <div class="feature-card">
+                    <h4>4. 工具函数</h4>
+                    <p><strong>功能：</strong>辅助处理函数</p>
+                    <div class="code-block">
+                        <div class="code-header">时间转换函数:</div>
+                        <div class="code-content">
+function time_to_seconds(time_string):
+    // 将 "HH:MM:SS" 转换为秒数
+    parts = 分割时间字符串(time_string, ":")
+    hours = 转换为数字(parts[0])
+    minutes = 转换为数字(parts[1])
+    seconds = 转换为数字(parts[2])
+    return hours * 3600 + minutes * 60 + seconds
+                        </div>
+                    </div>
+                    <div class="code-block">
+                        <div class="code-header">视频信息提取:</div>
+                        <div class="code-content">
+function get_video_info(video_path):
+    // 使用MoviePy获取视频信息
+    视频 = VideoFileClip(video_path)
+    时长 = 视频.duration
+    帧率 = 视频.fps
+    分辨率 = 视频.size
+    return {时长, 帧率, 分辨率}
+                        </div>
+                    </div>
+                </div>
             
             <h3 class="subsection-title">📡 API接口</h3>
             
@@ -404,7 +507,9 @@ graph TD
             </div>
             
             <h3 class="subsection-title">📦 项目结构</h3>
-            <div class="code-block">
+            <div class="project-structure">
+                <div class="project-structure-header">项目目录结构</div>
+                <div class="project-structure-content">
 video_cutter_project/
 ├── app.py              # 主应用文件
 ├── requirements.txt    # 依赖包列表
@@ -417,6 +522,7 @@ video_cutter_project/
 │   ├── index.html      # 主页面
 │   └── about.html      # 关于页面
 └── README.md           # 项目说明
+                </div>
             </div>
             
             <h3 class="subsection-title">🚀 部署指南</h3>
