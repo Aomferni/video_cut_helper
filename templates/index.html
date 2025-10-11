@@ -87,27 +87,52 @@
                         </tbody>
                     </table>
                     
-                    <div style="margin-top: 10px;">
-                        <button id="addRowBtn">添加行</button>
-                        <button id="deleteSelectedRowsBtn">删除选中行</button>
-                        <button id="calculateDurationBtn" style="background-color: #FF9800; margin-left: 10px;">计算时长</button>
-                        <button id="exportExcelBtn" style="background-color: #4CAF50; float: right;">导出Excel文件</button>
-                    </div>
                 </div>
                 
                 <div class="column">
+                    <!-- 视频播放器 -->
+                    <div class="video-container">
+                        <video id="cuttingVideoPlayer" controls></video>
+                    </div>
+                    
+                    <div class="controls">
+                        <button id="cuttingPlayPauseBtn">播放/暂停</button>
+                        <!-- 进度条 -->
+                        <div class="progress-container" id="cuttingProgressContainer">
+                            <div id="cuttingProgressBarBackground">
+                                <div id="cuttingProgressBarFill"></div>
+                            </div>
+                            <!-- 拖动时显示的时间帧 -->
+                            <div id="cuttingHoverTimeDisplay" style="position: absolute; top: -25px; background: rgba(0,0,0,0.8); color: white; padding: 2px 6px; border-radius: 3px; font-size: 12px; display: none;"></div>
+                        </div>
+                        <span id="cuttingCurrentTime">00:00:00</span> / <span id="cuttingDuration">00:00:00</span>
+                    </div>
+                    
+                    <!-- 将开始剪辑按钮移动到这里 -->
+                    <div style="margin-top: 20px; text-align: center;">
+                        <button id="cutButton" style="padding: 15px 30px; font-size: 18px; background-color: #FF5722; box-shadow: 0 4px 8px rgba(255, 87, 34, 0.3);">
+                            <span style="font-weight: bold;">▶</span> 开始剪辑
+                        </button>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <!-- 主要操作按钮 -->
+                        <div class="table-button-group">
+                            <button id="addRowBtn" class="table-main-action-btn">添加行</button>
+                            <button id="deleteSelectedRowsBtn" class="table-main-action-btn">删除选中行</button>
+                            
+                            <button id="calculateDurationBtn" class="table-secondary-action-btn">计算时长</button>
+                            
+                            <button id="exportExcelBtn" class="table-data-action-btn">导出Excel文件</button>
+                            
+                            <button id="playActiveTimeBtn" class="table-special-action-btn">跳转播放</button>
+                        </div>
+                    </div>
                     <label>处理结果</label>
                     <div id="cutResult" class="result-box">请上传视频并填写剪辑需求，然后点击"开始剪辑"</div>
                     
                     <div class="output-files">
                         <h3>输出文件</h3>
                         <ul id="cutOutputFilesList"></ul>
-                    </div>
-                    
-                    <div style="margin-top: 20px; text-align: center;">
-                        <button id="cutButton" style="padding: 15px 30px; font-size: 18px; background-color: #FF5722; box-shadow: 0 4px 8px rgba(255, 87, 34, 0.3);">
-                            <span style="font-weight: bold;">▶</span> 开始剪辑
-                        </button>
                     </div>
                 </div>
             </div>
@@ -118,15 +143,9 @@
             <div class="row">
                 <div class="column">
                     <div class="form-group">
-                        <label for="playerVideoFile">上传视频文件</label>
+                        <label for="playerVideoFile">选择要打标的视频文件</label>
                         <div style="display: flex; gap: 10px; align-items: center;">
                             <input type="file" id="playerVideoFile" accept="video/*" style="flex: 1;">
-                        </div>
-                        <!-- 添加上传进度提示 -->
-                        <div id="uploadProgressContainer" style="display: none; margin-top: 10px;">
-                            <div>上传进度:</div>
-                            <progress id="uploadProgress" value="0" max="100" style="width: 100%;"></progress>
-                            <div id="uploadProgressText" style="text-align: center; font-size: 12px;">0%</div>
                         </div>
                     </div>
                     
@@ -136,12 +155,10 @@
                     
                     <div class="controls">
                         <button id="playPauseBtn">播放/暂停</button>
-                        <!-- 修改进度条为可拖动样式 -->
                         <div class="progress-container" id="progressContainer">
                             <div id="progressBarBackground">
                                 <div id="progressBarFill"></div>
                             </div>
-                            <!-- 添加拖动时显示的时间帧 -->
                             <div id="hoverTimeDisplay" style="position: absolute; top: -25px; background: rgba(0,0,0,0.8); color: white; padding: 2px 6px; border-radius: 3px; font-size: 12px; display: none;"></div>
                         </div>
                         <span id="currentTime">00:00:00</span> / <span id="duration">00:00:00</span>
@@ -152,14 +169,49 @@
                         <div style="display: flex; gap: 10px; align-items: center;">
                             <input type="text" id="seekTime" placeholder="00:00:00" value="00:00:00" style="flex: 1;">
                             <button id="seekBtn" style="background-color: #2196F3; white-space: nowrap;">定位到指定时间</button>
+                            <!-- 将记录当前时间按钮放在定位到指定时间按钮的右边 -->
+                            <button id="recordTimeBtn" style="background-color: #2196F3; white-space: nowrap;">记录当前时间</button>
                         </div>
                     </div>
-                    
+                    <div style="margin-top: 10px;">
+                        <!-- 主要操作按钮 -->
+                        <div class="table-button-group">
+                            <button id="addRecordRowBtn" class="table-main-action-btn">添加剪辑行</button>
+                            <button id="deleteSelectedRecordRowsBtn" class="table-main-action-btn">删除选中行</button>
+                            
+                            <h4></h4>
+                            <button id="calculateRecordDurationBtn" class="table-secondary-action-btn">计算所有剪辑段时长</button>
+                            <button id="playRecordActiveTimeBtn" class="table-special-action-btn">跳转到激活时间点播放</button>
+                            
+                            <h4></h4>
+                            <button id="syncToClipTableBtn" class="table-data-action-btn">同步到视频剪辑页</button>
+                            <button id="exportRecordExcelBtn" class="table-data-action-btn">导出Excel文件</button>
+                            
+                        </div>
+                    </div>
+                    <label>视频信息详情</label>
+                    <div id="videoInfo" class="result-box" style="width: 100%; max-width: 100%; overflow-x: auto; white-space: pre-wrap; margin-bottom: 20px;"></div>
+
+                </div>
+                
+                <!-- 记录剪辑时间点的表格放在右边 -->
+                <div class="column">
                     <div class="section-title">记录剪辑时间点</div>
                     <p>点击下面的时间字段使其处于激活状态（黄色高亮），然后点击"记录当前时间"按钮：</p>
                     
-                    <div style="margin-bottom: 10px;">
-                        <button id="recordTimeBtn" style="background-color: #2196F3;">记录当前时间</button>
+                    <!-- 添加上传Excel功能 -->
+                    <div class="form-group" style="margin: 10px 0;">
+                        <label for="importRecordExcelFile">上传剪辑时间点Excel文件</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="file" id="importRecordExcelFile" accept=".xlsx,.xls" style="flex: 1;">
+                            <button id="importRecordExcelBtn" class="table-data-action-btn">上传Excel</button>
+                        </div>
+                        <!-- 添加Excel上传进度提示 -->
+                        <div id="recordExcelUploadProgressContainer" style="display: none; margin-top: 10px;">
+                            <div>上传进度:</div>
+                            <progress id="recordExcelUploadProgress" value="0" max="100" style="width: 100%;"></progress>
+                            <div id="recordExcelUploadProgressText" style="text-align: center; font-size: 12px;">0%</div>
+                        </div>
                     </div>
                     
                     <table>
@@ -185,17 +237,6 @@
                         </tbody>
                     </table>
                     
-                    <div style="margin-top: 10px;">
-                        <button id="addRecordRowBtn">添加行</button>
-                        <button id="deleteSelectedRecordRowsBtn">删除选中行</button>
-                        <button id="calculateRecordDurationBtn" style="background-color: #FF9800; margin-left: 10px;">计算时长</button>
-                    </div>
-
-                </div>
-                
-                <div class="column">
-                    <label>视频信息详情</label>
-                    <div id="videoInfo" class="result-box" style="width: 100%; max-width: 100%; overflow-x: auto; white-space: pre-wrap;"></div>
                 </div>
             </div>
         </div>
@@ -242,6 +283,7 @@
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>

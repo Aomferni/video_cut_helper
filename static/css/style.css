@@ -106,126 +106,77 @@ textarea {
 }
 
 button {
-    padding: 12px 20px;
+    padding: 10px 16px;
     background-color: #4CAF50;
     color: white;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
-    font-size: 16px;
-    transition: background-color 0.3s;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    min-width: 80px;
+    text-align: center;
 }
 
 button:hover {
     background-color: #45a049;
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    transform: translateY(-1px);
 }
 
+button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* 特定按钮样式覆盖 */
 #uploadVideoBtn, #uploadExcelBtn, #uploadConcatVideosBtn {
-    padding: 10px 15px;
-    font-size: 14px;
+    padding: 8px 12px;
+    font-size: 13px;
     background-color: #2196F3;
-    white-space: nowrap;
+    min-width: auto;
 }
 
 #uploadVideoBtn:hover, #uploadExcelBtn:hover, #uploadConcatVideosBtn:hover {
     background-color: #0b7dda;
 }
 
-#exportExcelBtn {
-    padding: 10px 15px;
-    font-size: 14px;
+#exportExcelBtn, #exportRecordExcelBtn {
+    padding: 8px 12px;
+    font-size: 13px;
     background-color: #4CAF50;
-    white-space: nowrap;
+    min-width: auto;
 }
 
-#exportExcelBtn:hover {
+#exportExcelBtn:hover, #exportRecordExcelBtn:hover {
     background-color: #45a049;
 }
 
-#exportRecordExcelBtn {
-    padding: 10px 15px;
-    font-size: 14px;
-    background-color: #4CAF50;
-    white-space: nowrap;
-}
 
-#exportRecordExcelBtn:hover {
-    background-color: #45a049;
-}
-
-#syncToClipTableBtn {
-    padding: 10px 15px;
-    font-size: 14px;
-    background-color: #9C27B0;
-    white-space: nowrap;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-}
-
-#syncToClipTableBtn:hover {
-    background-color: #7B1FA2;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-}
-
-#calculateDurationBtn {
-    padding: 10px 15px;
-    font-size: 14px;
-    background-color: #FF9800;
-    white-space: nowrap;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-}
-
-#calculateDurationBtn:hover {
-    background-color: #F57C00;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-}
-
-#calculateRecordDurationBtn {
-    padding: 10px 15px;
-    font-size: 14px;
-    background-color: #FF9800;
-    white-space: nowrap;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-}
-
-#calculateRecordDurationBtn:hover {
-    background-color: #F57C00;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-}
-
-#seekBtn {
-    padding: 10px 15px;
-    font-size: 14px;
+#seekBtn, #recordTimeBtn {
+    padding: 8px 12px;
+    font-size: 13px;
     background-color: #2196F3;
+    min-width: auto;
     white-space: nowrap;
 }
 
-#seekBtn:hover {
+#seekBtn:hover, #recordTimeBtn:hover {
     background-color: #0b7dda;
 }
 
 #concatButton {
     background-color: #FF5722 !important;
     color: white !important;
-    padding: 15px 30px !important;
+    padding: 16px 32px !important;
     font-size: 18px !important;
     border-radius: 8px !important;
     box-shadow: 0 4px 8px rgba(255, 87, 34, 0.3) !important;
     font-weight: bold;
     transition: all 0.3s ease;
+    min-width: 120px;
 }
 
 #concatButton:hover {
@@ -234,25 +185,32 @@ button:hover {
     transform: translateY(-2px);
 }
 
-#concatButton span {
-    margin-right: 8px;
+#concatButton:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 8px rgba(255, 87, 34, 0.3) !important;
 }
 
 #cutButton {
     background-color: #FF5722 !important;
     color: white !important;
-    padding: 15px 30px !important;
+    padding: 16px 32px !important;
     font-size: 18px !important;
     border-radius: 8px !important;
     box-shadow: 0 4px 8px rgba(255, 87, 34, 0.3) !important;
     font-weight: bold;
     transition: all 0.3s ease;
+    min-width: 120px;
 }
 
 #cutButton:hover {
     background-color: #E64A19 !important;
     box-shadow: 0 6px 12px rgba(255, 87, 34, 0.4) !important;
     transform: translateY(-2px);
+}
+
+#cutButton:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 8px rgba(255, 87, 34, 0.3) !important;
 }
 
 #cutButton span {
@@ -267,36 +225,40 @@ button.secondary:hover {
     background-color: #0b7dda;
 }
 
-.delete-row-btn {
+.delete-row-btn, .delete-record-row-btn {
     background-color: #f44336;
     color: white;
     border: none;
-    padding: 4px 8px;
-    border-radius: 3px;
+    padding: 6px 10px;
+    border-radius: 4px;
     cursor: pointer;
     font-size: 12px;
     box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    min-width: auto;
 }
 
-.delete-row-btn:hover {
+.delete-row-btn:hover, .delete-record-row-btn:hover {
     background-color: #d32f2f;
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
-#deleteSelectedRowsBtn {
+#deleteSelectedRowsBtn, #deleteSelectedRecordRowsBtn {
     background-color: #f44336;
-    margin-left: 10px;
+    padding: 8px 12px;
+    font-size: 13px;
+    min-width: auto;
 }
 
-#deleteSelectedRowsBtn:hover {
+#deleteSelectedRowsBtn:hover, #deleteSelectedRecordRowsBtn:hover {
     background-color: #d32f2f;
 }
 
 .remove-btn {
     background-color: #f44336;
-    padding: 4px 8px;
+    padding: 6px 10px;
     font-size: 12px;
     box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    min-width: auto;
 }
 
 .remove-btn:hover {
@@ -354,6 +316,49 @@ video {
 
 /* 拖动时显示的时间帧样式 */
 #hoverTimeDisplay {
+    position: absolute;
+    top: -25px;
+    background: rgba(0,0,0,0.8);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 12px;
+    display: none;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 100;
+}
+
+/* 视频剪辑页面的进度条样式 */
+#cuttingProgressContainer {
+    flex: 1;
+    height: 10px;
+    cursor: pointer;
+    position: relative;
+}
+
+#cuttingProgressBarBackground {
+    width: 100%;
+    height: 100%;
+    background-color: #ddd;
+    border-radius: 5px;
+    position: relative;
+}
+
+#cuttingProgressBarFill {
+    height: 100%;
+    background-color: #4CAF50;
+    border-radius: 5px;
+    width: 0%;
+    transition: width 0.1s;
+}
+
+#cuttingProgressBarBackground:hover #cuttingProgressBarFill {
+    background-color: #45a049;
+}
+
+/* 视频剪辑页面拖动时显示的时间帧样式 */
+#cuttingHoverTimeDisplay {
     position: absolute;
     top: -25px;
     background: rgba(0,0,0,0.8);
@@ -550,6 +555,130 @@ tr:nth-child(even) {
     font-weight: bold;
 }
 
+/* 表格操作按钮容器 */
+.table-button-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 15px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+/* 表格操作按钮分类标题 */
+.table-button-group h4 {
+    width: 100%;
+    margin: 0 0 10px 0;
+    padding: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #495057;
+}
+
+/* 主要操作按钮（添加行、删除选中行） */
+.table-main-action-btn {
+    padding: 8px 16px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    min-width: auto;
+}
+
+.table-main-action-btn:hover {
+    background-color: #45a049;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    transform: translateY(-1px);
+}
+
+/* 辅助操作按钮（计算时长等）- 改为绿色 */
+.table-secondary-action-btn {
+    padding: 8px 16px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    min-width: auto;
+}
+
+.table-secondary-action-btn:hover {
+    background-color: #45a049;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    transform: translateY(-1px);
+}
+
+/* 数据操作按钮（导出、同步等）- 改为绿色 */
+.table-data-action-btn {
+    padding: 8px 16px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    min-width: auto;
+}
+
+.table-data-action-btn:hover {
+    background-color: #45a049;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    transform: translateY(-1px);
+}
+
+/* 特殊功能按钮（跳转播放等）- 改为绿色 */
+.table-special-action-btn {
+    padding: 8px 16px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    min-width: auto;
+}
+
+.table-special-action-btn:hover {
+    background-color: #45a049;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    transform: translateY(-1px);
+}
+
+/* 删除按钮保持原有样式 */
+.delete-row-btn, .delete-record-row-btn {
+    background-color: #f44336;
+    color: white;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    min-width: auto;
+}
+
+.delete-row-btn:hover, .delete-record-row-btn:hover {
+    background-color: #d32f2f;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
 /* 响应式设计 */
 @media screen and (max-width: 768px) {
     .row {
@@ -583,29 +712,4 @@ tr:nth-child(even) {
         padding: 12px 20px;
         font-size: 16px;
     }
-}
-
-.delete-record-row-btn {
-    background-color: #f44336;
-    color: white;
-    border: none;
-    padding: 4px 8px;
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 12px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-}
-
-.delete-record-row-btn:hover {
-    background-color: #d32f2f;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-}
-
-#deleteSelectedRecordRowsBtn {
-    background-color: #f44336;
-    margin-left: 10px;
-}
-
-#deleteSelectedRecordRowsBtn:hover {
-    background-color: #d32f2f;
 }

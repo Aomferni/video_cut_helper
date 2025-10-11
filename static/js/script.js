@@ -24,6 +24,22 @@ document.addEventListener('DOMContentLoaded', function() {
         updateOutputFilesList();
         updateCutOutputFilesList();
     }, 5000);
+    
+    // 添加点击表格外取消激活状态的事件监听器
+    document.addEventListener('click', function(event) {
+        // 检查点击是否在表格内部
+        const isInClipTable = event.target.closest('#clipTable');
+        const isInRecordTable = event.target.closest('#player table');
+        
+        // 如果点击不在表格内部，则取消激活状态
+        if (!isInClipTable && !isInRecordTable) {
+            // 移除之前激活单元格的高亮
+            if (activeCell) {
+                activeCell.classList.remove('active-cell');
+                activeCell = null;
+            }
+        }
+    });
 });
 
 // 初始化标签页切换功能
@@ -47,6 +63,15 @@ function initTabs() {
 
 // 初始化视频剪辑标签页
 function initCuttingTab() {
+    // 选择视频文件后直接播放，不需要上传
+    document.getElementById('videoFile').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            // 直接播放视频，不上传到服务器
+            playUploadedVideo(file);
+        }
+    });
+    
     // 上传视频按钮
     document.getElementById('uploadVideoBtn').addEventListener('click', function() {
         const fileInput = document.getElementById('videoFile');
@@ -322,9 +347,96 @@ function initCuttingTab() {
         calculateAllDurations();
     });
     
+    // 跳转到激活时间点播放按钮
+    document.getElementById('playActiveTimeBtn').addEventListener('click', function() {
+        playActiveTime();
+    });
+    
     // 开始剪辑按钮
     document.getElementById('cutButton').addEventListener('click', function() {
         cutVideos();
+    });
+    
+    // 初始化视频播放器功能
+    initCuttingPlayer();
+    
+    // 初始化输出文件列表
+    updateCutOutputFilesList();
+}
+
+// 播放上传的视频文件
+function playUploadedVideo(file) {
+    const videoPlayer = document.getElementById('cuttingVideoPlayer');
+    const url = URL.createObjectURL(file);
+    videoPlayer.src = url;
+    videoPlayer.play();
+}
+
+// 初始化视频剪辑页面的视频播放器
+function initCuttingPlayer() {
+    const videoPlayer = document.getElementById('cuttingVideoPlayer');
+    const currentTimeDisplay = document.getElementById('cuttingCurrentTime');
+    const durationDisplay = document.getElementById('cuttingDuration');
+    
+    // 获取进度条元素
+    const progressContainer = document.getElementById('cuttingProgressContainer');
+    const progressBarFill = document.getElementById('cuttingProgressBarFill');
+    
+    // 视频时间更新
+    videoPlayer.addEventListener('timeupdate', function() {
+        if (videoPlayer.duration) {
+            const percent = (videoPlayer.currentTime / videoPlayer.duration) * 100;
+            progressBarFill.style.width = percent + '%';
+            
+            currentTimeDisplay.textContent = secondsToHMS(videoPlayer.currentTime);
+        }
+    });
+    
+    // 视频加载元数据
+    videoPlayer.addEventListener('loadedmetadata', function() {
+        durationDisplay.textContent = secondsToHMS(videoPlayer.duration);
+    });
+    
+    // 点击进度条跳转到指定位置
+    progressContainer.addEventListener('click', function(e) {
+        if (videoPlayer.duration) {
+            const rect = progressContainer.getBoundingClientRect();
+            const pos = (e.clientX - rect.left) / rect.width;
+            videoPlayer.currentTime = pos * videoPlayer.duration;
+        }
+    });
+    
+    // 鼠标在进度条上移动时显示时间
+    progressContainer.addEventListener('mousemove', function(e) {
+        if (videoPlayer.duration) {
+            const rect = progressContainer.getBoundingClientRect();
+            const pos = (e.clientX - rect.left) / rect.width;
+            const hoverTime = pos * videoPlayer.duration;
+            
+            // 显示时间提示
+            const hoverTimeDisplay = document.getElementById('cuttingHoverTimeDisplay');
+            hoverTimeDisplay.textContent = secondsToHMS(hoverTime);
+            
+            // 设置位置
+            const hoverPos = e.clientX - rect.left;
+            hoverTimeDisplay.style.left = (hoverPos - 30) + 'px';
+            hoverTimeDisplay.style.display = 'block';
+        }
+    });
+    
+    // 鼠标离开进度条时隐藏时间显示
+    progressContainer.addEventListener('mouseleave', function() {
+        const hoverTimeDisplay = document.getElementById('cuttingHoverTimeDisplay');
+        hoverTimeDisplay.style.display = 'none';
+    });
+    
+    // 播放/暂停按钮
+    document.getElementById('cuttingPlayPauseBtn').addEventListener('click', function() {
+        if (videoPlayer.paused) {
+            videoPlayer.play();
+        } else {
+            videoPlayer.pause();
+        }
     });
     
     // 初始化输出文件列表
@@ -590,21 +702,36 @@ function initPlayerTab() {
 function showLocalVideoInfo(file) {
     const video = document.getElementById('videoPlayer');
     
+    // 先清空之前的信息
+    document.getElementById('videoInfo').textContent = '正在加载视频信息...';
+    
     // 等待视频加载元数据
-    video.addEventListener('loadedmetadata', function() {
+    const onLoadMetadata = function() {
         const fileSize = (file.size / (1024 * 1024)).toFixed(2); // MB
         
         const infoText = `文件名: ${file.name}\n文件大小: ${fileSize} MB\n视频时长: ${secondsToHMS(video.duration)}\n分辨率: ${video.videoWidth}x${video.videoHeight}`;
         document.getElementById('videoInfo').textContent = infoText;
-    }, { once: true }); // 只执行一次
+    };
+    
+    // 检查视频是否已经加载了元数据
+    if (video.readyState >= 1) {
+        // 如果已经加载了元数据，直接显示信息
+        onLoadMetadata();
+    } else {
+        // 否则等待加载元数据
+        video.addEventListener('loadedmetadata', onLoadMetadata);
+    }
 }
 
 // 初始化记录时间点表格功能
 function initRecordTimeTable() {
-    // 记录当前时间按钮
-    document.getElementById('recordTimeBtn').addEventListener('click', function() {
-        recordCurrentTime();
-    });
+    // 记录当前时间按钮（现在在快速定位区域）
+    const recordTimeBtn = document.getElementById('recordTimeBtn');
+    if (recordTimeBtn) {
+        recordTimeBtn.addEventListener('click', function() {
+            recordCurrentTime();
+        });
+    }
     
     // 添加行按钮
     document.getElementById('addRecordRowBtn').addEventListener('click', function() {
@@ -621,48 +748,88 @@ function initRecordTimeTable() {
         calculateAllRecordDurations();
     });
     
-    // 同步到剪辑需求表格按钮
-    const syncToClipTableBtn = document.createElement('button');
-    syncToClipTableBtn.id = 'syncToClipTableBtn';
-    syncToClipTableBtn.textContent = '同步到剪辑需求表格';
-    syncToClipTableBtn.style.backgroundColor = '#9C27B0';
-    syncToClipTableBtn.style.marginLeft = '10px';
-    
-    const recordTable = document.querySelector('#player table');
-    const recordTableParent = recordTable.parentNode;
-    const recordActionsDiv = document.createElement('div');
-    recordActionsDiv.style.marginTop = '10px';
-    
-    // 复用现有的按钮
-    const addRecordRowBtn = document.getElementById('addRecordRowBtn');
-    const deleteSelectedRecordRowsBtn = document.getElementById('deleteSelectedRecordRowsBtn');
-    const calculateRecordDurationBtn = document.getElementById('calculateRecordDurationBtn');
-    
-    // 将按钮移动到新的容器中
-    recordActionsDiv.appendChild(addRecordRowBtn);
-    recordActionsDiv.appendChild(deleteSelectedRecordRowsBtn);
-    recordActionsDiv.appendChild(calculateRecordDurationBtn);
-    recordActionsDiv.appendChild(syncToClipTableBtn);
-    
-    // 添加导出Excel按钮
-    const exportRecordExcelBtn = document.createElement('button');
-    exportRecordExcelBtn.id = 'exportRecordExcelBtn';
-    exportRecordExcelBtn.textContent = '导出Excel文件';
-    exportRecordExcelBtn.style.backgroundColor = '#4CAF50';
-    exportRecordExcelBtn.style.float = 'right';
-    recordActionsDiv.appendChild(exportRecordExcelBtn);
-    
-    recordTableParent.insertBefore(recordActionsDiv, recordTable.nextSibling);
-    
-    // 添加同步按钮事件监听器
-    syncToClipTableBtn.addEventListener('click', function() {
-        syncRecordToClipTable();
+    // 跳转到激活时间点播放按钮
+    document.getElementById('playRecordActiveTimeBtn').addEventListener('click', function() {
+        playRecordActiveTime();
     });
     
-    // 添加导出Excel按钮事件监听器
-    exportRecordExcelBtn.addEventListener('click', function() {
-        exportRecordToExcel();
+    // 上传Excel按钮（使用与视频剪辑页面相同的逻辑）
+    document.getElementById('importRecordExcelBtn').addEventListener('click', function() {
+        const fileInput = document.getElementById('importRecordExcelFile');
+        if (fileInput.files.length === 0) {
+            alert('请先选择Excel文件');
+            return;
+        }
+        
+        // 显示上传进度条
+        const progressContainer = document.getElementById('recordExcelUploadProgressContainer');
+        const progressBar = document.getElementById('recordExcelUploadProgress');
+        const progressText = document.getElementById('recordExcelUploadProgressText');
+        progressContainer.style.display = 'block';
+        progressBar.value = 0;
+        progressText.textContent = '0%';
+        
+        // 模拟上传进度（实际项目中应该通过真实的上传过程更新进度）
+        let progress = 0;
+        const interval = setInterval(() => {
+            progress += Math.floor(Math.random() * 5) + 1;
+            if (progress >= 100) {
+                progress = 100;
+                clearInterval(interval);
+            }
+            progressBar.value = progress;
+            progressText.textContent = progress + '%';
+        }, 100);
+        
+        // 真实的上传逻辑（在模拟进度完成后执行）
+        setTimeout(() => {
+            const formData = new FormData();
+            formData.append('excel', fileInput.files[0]);
+            
+            fetch('/upload_excel', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                // 隐藏上传进度条
+                progressContainer.style.display = 'none';
+                clearInterval(interval); // 确保清除定时器
+                
+                if (data.error) {
+                    alert('上传失败: ' + data.error);
+                } else {
+                    // 使用上传的Excel数据填充记录时间点表格
+                    fillRecordTableWithData(data.data);
+                    alert('Excel上传成功: ' + data.filename);
+                }
+            })
+            .catch(error => {
+                // 隐藏上传进度条
+                progressContainer.style.display = 'none';
+                clearInterval(interval); // 确保清除定时器
+                
+                console.error('Error:', error);
+                alert('上传失败: ' + error);
+            });
+        }, 3000); // 3秒后执行真实上传
     });
+    
+    // 同步到剪辑需求表格按钮（使用HTML中已有的按钮）
+    const syncToClipTableBtn = document.getElementById('syncToClipTableBtn');
+    if (syncToClipTableBtn) {
+        syncToClipTableBtn.addEventListener('click', function() {
+            syncRecordToClipTable();
+        });
+    }
+    
+    // 导出Excel按钮（使用HTML中已有的按钮）
+    const exportRecordExcelBtn = document.getElementById('exportRecordExcelBtn');
+    if (exportRecordExcelBtn) {
+        exportRecordExcelBtn.addEventListener('click', function() {
+            exportRecordToExcel();
+        });
+    }
     
     // 为现有的复选框添加事件监听器
     document.querySelectorAll('.record-row-checkbox').forEach(checkbox => {
@@ -1083,8 +1250,11 @@ function secondsToHMS(seconds) {
 
 // 将HH:MM:SS格式转换为秒数
 function hmsToSeconds(str) {
-    if (!str) return 0;
-    const parts = str.split(":");
+    // 确保输入是字符串
+    const timeStr = String(str || '').trim();
+    
+    if (!timeStr) return 0;
+    const parts = timeStr.split(":");
     let seconds = 0;
     
     if (parts.length === 3) {
@@ -1501,4 +1671,255 @@ function updateCutOutputFilesList() {
     .catch(error => {
         console.error('Error:', error);
     });
+}
+
+// 跳转到激活时间点播放（视频剪辑页面）
+function playActiveTime() {
+    if (!activeCell) {
+        alert('请先点击激活一个时间单元格（开始时间或结束时间）');
+        return;
+    }
+    
+    // 获取激活单元格的时间值
+    const timeStr = activeCell.textContent;
+    const seconds = hmsToSeconds(timeStr);
+    
+    // 获取视频播放器并跳转到指定时间
+    const videoPlayer = document.getElementById('cuttingVideoPlayer');
+    if (videoPlayer && videoPlayer.duration) {
+        videoPlayer.currentTime = seconds;
+        // 如果视频暂停则播放
+        if (videoPlayer.paused) {
+            videoPlayer.play();
+        }
+    } else {
+        alert('请先上传并播放视频');
+    }
+}
+
+// 跳转到激活时间点播放（视频打标页面）
+function playRecordActiveTime() {
+    if (!activeCell) {
+        alert('请先点击激活一个时间单元格（开始时间或结束时间）');
+        return;
+    }
+    
+    // 获取激活单元格的时间值
+    const timeStr = activeCell.textContent;
+    const seconds = hmsToSeconds(timeStr);
+    
+    // 获取视频播放器并跳转到指定时间
+    const videoPlayer = document.getElementById('videoPlayer');
+    if (videoPlayer && videoPlayer.duration) {
+        videoPlayer.currentTime = seconds;
+        // 如果视频暂停则播放
+        if (videoPlayer.paused) {
+            videoPlayer.play();
+        }
+    } else {
+        alert('请先选择并播放视频');
+    }
+}
+
+// 导入记录时间点Excel文件
+function importRecordExcel() {
+    const fileInput = document.getElementById('importRecordExcelFile');
+    if (fileInput.files.length === 0) {
+        alert('请先选择Excel文件');
+        return;
+    }
+    
+    const file = fileInput.files[0];
+    const formData = new FormData();
+    formData.append('excel', file);
+    
+    // 使用FileReader读取文件内容
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            // 使用SheetJS解析Excel文件
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            
+            // 获取第一个工作表
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            
+            // 将工作表转换为JSON
+            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+            
+            // 清空现有表格数据
+            const tbody = document.querySelector('#player table tbody');
+            tbody.innerHTML = '';
+            
+            // 填充表格数据
+            jsonData.forEach(row => {
+                addRecordRowWithData(row);
+            });
+            
+            alert('Excel文件导入成功');
+        } catch (error) {
+            console.error('Error:', error);
+            alert('导入失败: ' + error.message);
+        }
+    };
+    
+    reader.onerror = function() {
+        alert('文件读取失败');
+    };
+    
+    reader.readAsArrayBuffer(file);
+}
+
+// 使用上传的Excel数据填充记录时间点表格
+function fillRecordTableWithData(data) {
+    if (!data || !Array.isArray(data)) {
+        console.error('Invalid data format');
+        return;
+    }
+    
+    // 清空现有表格数据
+    const tbody = document.querySelector('#player table tbody');
+    tbody.innerHTML = '';
+    
+    // 填充表格数据
+    data.forEach(row => {
+        addRecordRowWithData(row);
+    });
+}
+
+// 添加带数据的记录行
+function addRecordRowWithData(data) {
+    const tbody = document.querySelector('#player table tbody');
+    const newRow = tbody.insertRow();
+    
+    // 添加复选框单元格
+    const checkboxCell = newRow.insertCell(0);
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.className = 'record-row-checkbox';
+    checkboxCell.appendChild(checkbox);
+    
+    // 获取数据中的开始时间、结束时间、剪辑标题
+    // 支持多种列名格式，并确保转换为字符串
+    let startTime = String(data['开始时间'] || data['StartTime'] || data['Start'] || '00:00:00');
+    let endTime = String(data['结束时间'] || data['EndTime'] || data['End'] || '00:00:00');
+    const title = String(data['剪辑标题'] || data['Title'] || '');
+    
+    // 格式化时间，确保是00:00:00格式
+    startTime = formatTime(startTime);
+    endTime = formatTime(endTime);
+    
+    const cell1 = newRow.insertCell(1);
+    const cell2 = newRow.insertCell(2);
+    const cell3 = newRow.insertCell(3);
+    const durationCell = newRow.insertCell(4);
+    const actionCell = newRow.insertCell(5);
+    
+    cell1.className = 'editable';
+    cell1.contentEditable = true;
+    cell1.textContent = startTime;
+    
+    cell2.className = 'editable';
+    cell2.contentEditable = true;
+    cell2.textContent = endTime;
+    
+    cell3.className = 'editable';
+    cell3.contentEditable = true;
+    cell3.textContent = title;
+    
+    // 计算时长
+    const duration = calculateDuration(startTime, endTime);
+    durationCell.className = 'duration-cell';
+    durationCell.textContent = duration;
+    
+    // 添加删除按钮
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'delete-record-row-btn';
+    deleteBtn.textContent = '删除';
+    deleteBtn.addEventListener('click', function() {
+        if (confirm('确定要删除这一行吗？')) {
+            tbody.removeChild(newRow);
+        }
+    });
+    actionCell.appendChild(deleteBtn);
+    
+    // 添加时间变化监听器以自动计算时长
+    cell1.addEventListener('input', function() {
+        const duration = calculateDuration(cell1.textContent, cell2.textContent);
+        durationCell.textContent = duration;
+    });
+    
+    cell2.addEventListener('input', function() {
+        const duration = calculateDuration(cell1.textContent, cell2.textContent);
+        durationCell.textContent = duration;
+    });
+    
+    // 添加点击事件以激活单元格
+    cell1.addEventListener('click', function() {
+        setActiveCell(this);
+    });
+    
+    cell2.addEventListener('click', function() {
+        setActiveCell(this);
+    });
+    
+    cell3.addEventListener('click', function() {
+        setActiveCell(this);
+    });
+    
+    // 添加复选框事件监听器
+    checkbox.addEventListener('change', function() {
+        updateRecordSelectAllCheckbox();
+    });
+}
+
+// 格式化时间为00:00:00格式
+function formatTime(timeStr) {
+    // 确保输入是字符串
+    const str = String(timeStr || '').trim();
+    
+    if (!str) return '00:00:00';
+    
+    // 如果已经是标准格式，直接返回
+    if (/^\d{2}:\d{2}:\d{2}(\.\d{3})?$/.test(str)) {
+        return str;
+    }
+    
+    // 处理各种可能的时间格式
+    try {
+        // 处理秒数格式（如：120.5）
+        if (/^\d+\.?\d*$/.test(str)) {
+            const seconds = parseFloat(str);
+            return secondsToHMS(seconds);
+        }
+        
+        // 处理带分隔符的格式（如：1:30:45 或 30:45）
+        const parts = str.split(':');
+        if (parts.length === 3) {
+            // HH:MM:SS格式
+            const hours = parseInt(parts[0]) || 0;
+            const minutes = parseInt(parts[1]) || 0;
+            const seconds = parseFloat(parts[2]) || 0;
+            return [hours, minutes, seconds].map((v, i) => 
+                i === 2 ? v.toFixed(3).padStart(6, '0') : v.toString().padStart(2, '0')
+            ).join(':');
+        } else if (parts.length === 2) {
+            // MM:SS格式
+            const minutes = parseInt(parts[0]) || 0;
+            const seconds = parseFloat(parts[1]) || 0;
+            return [0, minutes, seconds].map((v, i) => 
+                i === 2 ? v.toFixed(3).padStart(6, '0') : v.toString().padStart(2, '0')
+            ).join(':');
+        } else if (parts.length === 1) {
+            // 可能是秒数
+            const seconds = parseFloat(parts[0]) || 0;
+            return secondsToHMS(seconds);
+        }
+    } catch (e) {
+        console.error('时间格式化错误:', e);
+    }
+    
+    // 如果所有格式化都失败，返回默认值
+    return '00:00:00';
 }
