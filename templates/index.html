@@ -162,33 +162,9 @@
                             <div id="hoverTimeDisplay" style="position: absolute; top: -25px; background: rgba(0,0,0,0.8); color: white; padding: 2px 6px; border-radius: 3px; font-size: 12px; display: none;"></div>
                         </div>
                         <span id="currentTime">00:00:00</span> / <span id="duration">00:00:00</span>
+                        <button id="recordTimeBtn" style="background-color: #2196F3; white-space: nowrap;">记录当前时间</button>
                     </div>
                     
-                    <div class="form-group">
-                        <label for="seekTime">快速定位到指定时间</label>
-                        <div style="display: flex; gap: 10px; align-items: center;">
-                            <input type="text" id="seekTime" placeholder="00:00:00" value="00:00:00" style="flex: 1;">
-                            <button id="seekBtn" style="background-color: #2196F3; white-space: nowrap;">定位到指定时间</button>
-                            <!-- 将记录当前时间按钮放在定位到指定时间按钮的右边 -->
-                            <button id="recordTimeBtn" style="background-color: #2196F3; white-space: nowrap;">记录当前时间</button>
-                        </div>
-                    </div>
-                    <div style="margin-top: 10px;">
-                        <!-- 主要操作按钮 -->
-                        <div class="table-button-group">
-                            <button id="addRecordRowBtn" class="table-main-action-btn">添加剪辑行</button>
-                            <button id="deleteSelectedRecordRowsBtn" class="table-main-action-btn">删除选中行</button>
-                            
-                            <h4></h4>
-                            <button id="calculateRecordDurationBtn" class="table-secondary-action-btn">计算所有剪辑段时长</button>
-                            <button id="playRecordActiveTimeBtn" class="table-special-action-btn">跳转到激活时间点播放</button>
-                            
-                            <h4></h4>
-                            <button id="syncToClipTableBtn" class="table-data-action-btn">同步到视频剪辑页</button>
-                            <button id="exportRecordExcelBtn" class="table-data-action-btn">导出Excel文件</button>
-                            
-                        </div>
-                    </div>
                     <label>视频信息详情</label>
                     <div id="videoInfo" class="result-box" style="width: 100%; max-width: 100%; overflow-x: auto; white-space: pre-wrap; margin-bottom: 20px;"></div>
 
@@ -205,6 +181,7 @@
                         <div style="display: flex; gap: 10px; align-items: center;">
                             <input type="file" id="importRecordExcelFile" accept=".xlsx,.xls" style="flex: 1;">
                             <button id="importRecordExcelBtn" class="table-data-action-btn">上传Excel</button>
+                            <button id="exportRecordExcelBtn" class="table-data-action-btn">导出Excel文件</button>
                         </div>
                         <!-- 添加Excel上传进度提示 -->
                         <div id="recordExcelUploadProgressContainer" style="display: none; margin-top: 10px;">
@@ -213,7 +190,21 @@
                             <div id="recordExcelUploadProgressText" style="text-align: center; font-size: 12px;">0%</div>
                         </div>
                     </div>
-                    
+                    <div style="margin-top: 10px;">
+                        <!-- 主要操作按钮 -->
+                        <div class="table-button-group">
+                            <button id="deleteSelectedRecordRowsBtn" class="table-main-action-btn">删除选中行</button>
+                            <button id="syncToClipTableBtn" class="table-data-action-btn">同步到视频剪辑页</button>                            
+                            <button id="calculateRecordDurationBtn" class="table-secondary-action-btn">计算所有剪辑段时长</button>
+                            
+                            <h4></h4>
+                            <input type="text" id="seekTime" placeholder="00:00:00" value="00:00:00" style="flex: 1;">
+                            <button id="seekBtn" style="background-color: #2196F3; white-space: nowrap;">定位到指定时间</button>
+                            <button id="addRecordRowBtn" class="table-main-action-btn">添加剪辑行</button>
+                            <button id="playRecordActiveTimeBtn" class="table-special-action-btn">跳转到激活时间点播放</button>
+
+                        </div>
+                    </div>
                     <table>
                         <thead>
                             <tr>
