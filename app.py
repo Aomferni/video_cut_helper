@@ -180,6 +180,100 @@ def fallback_concatenate_videos(video_paths, output_path):
     except Exception as e:
         return f"❌ 回退方案也失败了: {str(e)}"
 
+def compress_video(input_path, output_path, preset='medium', speed_mode='medium'):
+    """压缩视频到指定预设"""
+    try:
+        if not os.path.exists(input_path):
+            return f"❌ 错误：找不到视频文件 {input_path}"
+            
+        # 获取原始视频信息
+        original_info = get_video_info(input_path)
+        if "error" in original_info:
+            return f"❌ 获取视频信息失败: {original_info['error']}"
+            
+        original_size = os.path.getsize(input_path) / (1024 * 1024)  # MB
+        
+        # 根据预设设置CRF值和音频码率
+        preset_settings = {
+            'low': {'crf': 35, 'audio_bitrate': '64k'},
+            'medium': {'crf': 28, 'audio_bitrate': '96k'},
+            'high': {'crf': 23, 'audio_bitrate': '128k'}
+        }
+        
+        settings = preset_settings.get(preset, preset_settings['medium'])
+        crf = settings['crf']
+        audio_bitrate = settings['audio_bitrate']
+        
+        # 根据速度模式设置preset参数
+        preset_map = {
+            'fast': 'ultrafast',
+            'medium': 'medium',
+            'slow': 'veryslow'
+        }
+        ffmpeg_preset = preset_map.get(speed_mode, 'medium')
+        
+        # 使用FFmpeg压缩视频
+        cmd = [
+            FFMPEG_PATH,
+            '-i', input_path,
+            '-vcodec', 'libx264',
+            '-crf', str(crf),
+            '-preset', ffmpeg_preset,
+            '-acodec', 'aac',
+            '-b:a', audio_bitrate,
+            '-y',
+            output_path
+        ]
+        
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)  # 10分钟超时
+        
+        if result.returncode != 0:
+            raise Exception(f"FFmpeg压缩错误: {result.stderr}")
+            
+        # 获取压缩后的文件大小
+        compressed_size = os.path.getsize(output_path) / (1024 * 1024)  # MB
+        
+        # 计算压缩比例
+        compression_ratio = (1 - compressed_size / original_size) * 100
+        
+        return f"✅ 视频压缩完成！原始大小: {original_size:.1f}MB -> 压缩后大小: {compressed_size:.1f}MB (压缩比例: {compression_ratio:.1f}%)"
+        
+    except subprocess.TimeoutExpired:
+        return "❌ 视频压缩超时，请检查视频文件大小"
+    except Exception as e:
+        return f"❌ 视频压缩失败: {str(e)}"
+
+def get_compression_estimate(original_size_mb, preset='medium'):
+    """根据预设估算压缩后的文件大小和预估时间"""
+    # 根据预设定义压缩比例
+    compression_ratios = {
+        'low': 0.1,    # 压缩到原始大小的10%
+        'medium': 0.25, # 压缩到原始大小的25%
+        'high': 0.5    # 压缩到原始大小的50%
+    }
+    
+    # 根据预设定义压缩速度（MB/分钟）
+    compression_speeds = {
+        'low': 150,    # 低质量压缩速度
+        'medium': 100, # 中等质量压缩速度
+        'high': 60     # 高质量压缩速度
+    }
+    
+    ratio = compression_ratios.get(preset, compression_ratios['medium'])
+    speed = compression_speeds.get(preset, compression_speeds['medium'])
+    
+    estimated_size = original_size_mb * ratio
+    
+    # 预估时间（分钟）= 原始文件大小 / 压缩速度
+    estimated_time_minutes = original_size_mb / speed
+    
+    return {
+        'original_size': original_size_mb,
+        'estimated_size': estimated_size,
+        'compression_ratio': (1 - ratio) * 100,
+        'estimated_time_minutes': estimated_time_minutes
+    }
+
 def cut_videos_from_dataframe(input_video_path, df):
     """根据DataFrame中的时间信息裁剪视频"""
     try:
@@ -351,6 +445,20 @@ def get_video_info_route():
     info = get_video_info(video_path)
     return jsonify(info)
 
+@app.route('/get_file_size', methods=['POST'])
+def get_file_size_route():
+    data = request.get_json()
+    file_path = data.get('file_path')
+    
+    if not file_path or not os.path.exists(file_path):
+        return jsonify({'error': '文件不存在'})
+    
+    try:
+        size = os.path.getsize(file_path)
+        return jsonify({'size': size})
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
 @app.route('/cut_videos', methods=['POST'])
 def cut_videos_route():
     data = request.get_json()
@@ -490,6 +598,33 @@ def list_output_files():
     
     return jsonify({'files': files})
 
+@app.route('/list_upload_videos')
+def list_upload_videos():
+    """列出所有上传的视频文件"""
+    upload_dir = app.config['UPLOAD_FOLDER']
+    if not os.path.exists(upload_dir):
+        return jsonify({'files': []})
+    
+    files = []
+    # 支持的视频文件扩展名
+    video_extensions = {'.mp4', '.avi', '.mov', '.mkv', '.flv', '.wmv', '.webm', '.m4v'}
+    
+    for filename in os.listdir(upload_dir):
+        # 检查文件扩展名是否为视频格式
+        _, ext = os.path.splitext(filename.lower())
+        if ext in video_extensions:
+            filepath = os.path.join(upload_dir, filename)
+            file_size = os.path.getsize(filepath)
+            # 转换为MB
+            file_size_mb = round(file_size / (1024 * 1024), 2)
+            files.append({
+                'name': filename,
+                'path': filepath,
+                'size': f"{file_size_mb} MB"
+            })
+    
+    return jsonify({'files': files})
+
 @app.route('/download/<filename>')
 def download_file(filename):
     filepath = os.path.join(app.config['OUTPUT_FOLDER'], filename)
@@ -535,6 +670,56 @@ def export_excel():
             'success': False,
             'error': str(e)
         })
+
+@app.route('/compress_video', methods=['POST'])
+def compress_video_route():
+    """视频压缩路由"""
+    try:
+        data = request.get_json()
+        video_path = data.get('video_path')
+        preset = data.get('preset', 'medium')  # 默认中等质量
+        speed_mode = data.get('speed_mode', 'medium')  # 默认中等速度
+        
+        if not video_path or not os.path.exists(video_path):
+            return jsonify({'error': '视频文件不存在'})
+            
+        # 生成输出文件路径，确保为MP4格式
+        filename = os.path.basename(video_path)
+        name, ext = os.path.splitext(filename)
+        output_filename = f"{name}_compressed.mp4"  # 强制使用MP4扩展名
+        output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
+        
+        # 执行压缩
+        result = compress_video(video_path, output_path, preset, speed_mode)
+        
+        return jsonify({
+            'result': result,
+            'output_path': output_path if '✅' in result else None,
+            'output_filename': output_filename if '✅' in result else None
+        })
+    except Exception as e:
+        return jsonify({'error': f'处理过程中出现错误: {str(e)}'})
+
+@app.route('/get_compression_estimate', methods=['POST'])
+def get_compression_estimate_route():
+    """获取压缩估算路由"""
+    try:
+        data = request.get_json()
+        video_path = data.get('video_path')
+        preset = data.get('preset', 'medium')
+        
+        if not video_path or not os.path.exists(video_path):
+            return jsonify({'error': '视频文件不存在'})
+            
+        # 获取原始视频大小
+        original_size = os.path.getsize(video_path) / (1024 * 1024)  # MB
+        
+        # 获取压缩估算
+        estimate = get_compression_estimate(original_size, preset)
+        
+        return jsonify(estimate)
+    except Exception as e:
+        return jsonify({'error': f'处理过程中出现错误: {str(e)}'})
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5001)

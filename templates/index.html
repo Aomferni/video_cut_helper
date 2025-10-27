@@ -20,6 +20,7 @@
             <button class="tab-button active" data-tab="cutting">视频剪辑</button>
             <button class="tab-button" data-tab="player">视频打标</button>
             <button class="tab-button" data-tab="concat">视频拼接</button>
+            <button class="tab-button" data-tab="compress">视频压缩</button>
         </div>
         
         <!-- 视频剪辑标签页 -->
@@ -37,6 +38,16 @@
                             <div>上传进度:</div>
                             <progress id="videoUploadProgress" value="0" max="100" style="width: 100%;"></progress>
                             <div id="videoUploadProgressText" style="text-align: center; font-size: 12px;">0%</div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>或从已上传文件中选择</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <select id="existingVideoSelectForCutting" style="flex: 1;">
+                                <option value="">请选择已上传的视频文件</option>
+                            </select>
+                            <button id="refreshVideoListForCuttingBtn" style="white-space: nowrap;">刷新列表</button>
                         </div>
                     </div>
                     
@@ -149,6 +160,16 @@
                         </div>
                     </div>
                     
+                    <div class="form-group">
+                        <label>或从已上传文件中选择</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <select id="existingVideoSelectForPlayer" style="flex: 1;">
+                                <option value="">请选择已上传的视频文件</option>
+                            </select>
+                            <button id="refreshVideoListForPlayerBtn" style="white-space: nowrap;">刷新列表</button>
+                        </div>
+                    </div>
+                    
                     <div class="video-container">
                         <video id="videoPlayer" controls></video>
                     </div>
@@ -244,6 +265,19 @@
                         </div>
                     </div>
                     
+                    <div class="form-group">
+                        <label>或从已上传文件中选择</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <select id="existingVideoSelectForConcat" multiple style="flex: 1; height: 100px;">
+                                <option value="">请选择已上传的视频文件</option>
+                            </select>
+                            <div style="display: flex; flex-direction: column; gap: 5px;">
+                                <button id="refreshVideoListForConcatBtn" style="white-space: nowrap;">刷新列表</button>
+                                <button id="addSelectedVideosBtn" style="white-space: nowrap;">添加选中</button>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="uploaded-videos">
                         <h3>已上传的视频文件</h3>
                         <ul id="uploadedVideosList" class="sortable-list"></ul>
@@ -268,6 +302,97 @@
                     <div class="output-files">
                         <h3>输出文件</h3>
                         <ul id="outputFilesList"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 视频压缩标签页 -->
+        <div id="compress" class="tab-content">
+            <div class="row">
+                <div class="column">
+                    <div class="form-group">
+                        <label for="compressVideoFile">选择要压缩的视频文件</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="file" id="compressVideoFile" accept="video/*" style="flex: 1;">
+                            <button id="uploadCompressVideoBtn" style="white-space: nowrap;">上传视频</button>
+                        </div>
+                        <!-- 添加上传进度提示 -->
+                        <div id="compressVideoUploadProgressContainer" style="display: none; margin-top: 10px;">
+                            <div>上传进度:</div>
+                            <progress id="compressVideoUploadProgress" value="0" max="100" style="width: 100%;"></progress>
+                            <div id="compressVideoUploadProgressText" style="text-align: center; font-size: 12px;">0%</div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>或从已上传文件中选择</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <select id="existingVideoSelect" style="flex: 1;">
+                                <option value="">请选择已上传的视频文件</option>
+                            </select>
+                            <button id="refreshVideoListBtn" style="white-space: nowrap;">刷新列表</button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="compressionPreset">压缩质量预设</label>
+                        <select id="compressionPreset" style="width: 100%;">
+                            <option value="low">低质量 (文件最小)</option>
+                            <option value="medium" selected>中等质量 (平衡)</option>
+                            <option value="high">高质量 (文件较大)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="compressionSpeed">压缩速度</label>
+                        <select id="compressionSpeed" style="width: 100%;">
+                            <option value="fast">快速 (质量稍低)</option>
+                            <option value="medium" selected>中等 (平衡质量与速度)</option>
+                            <option value="slow">慢速 (高质量)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>预计压缩结果</label>
+                        <div id="compressionEstimate" style="padding: 10px; background-color: #f0f8ff; border-radius: 4px; margin-top: 10px;">
+                            <div>原始文件大小: <span id="originalSize">-</span></div>
+                            <div>预计压缩后大小: <span id="estimatedSize">-</span></div>
+                            <div>预计压缩比例: <span id="compressionRatio">-</span></div>
+                            <div>预计压缩时间: <span id="estimatedTime">-</span></div>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button id="compressButton" style="padding: 15px 30px; font-size: 18px; background-color: #4CAF50; box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);">
+                            <span style="font-weight: bold;">🗜️</span> 开始压缩
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="column">
+                    <!-- 视频播放器 -->
+                    <div class="video-container">
+                        <video id="compressVideoPlayer" controls></video>
+                    </div>
+                    
+                    <div class="controls">
+                        <button id="compressPlayPauseBtn">播放/暂停</button>
+                        <div class="progress-container" id="compressProgressContainer">
+                            <div id="compressProgressBarBackground">
+                                <div id="compressProgressBarFill"></div>
+                            </div>
+                            <div id="compressHoverTimeDisplay" style="position: absolute; top: -25px; background: rgba(0,0,0,0.8); color: white; padding: 2px 6px; border-radius: 3px; font-size: 12px; display: none;"></div>
+                        </div>
+                        <span id="compressCurrentTime">00:00:00</span> / <span id="compressDuration">00:00:00</span>
+                    </div>
+                    
+                    <label>压缩结果</label>
+                    <div id="compressResult" class="result-box">请选择要压缩的视频文件，然后点击"开始压缩"</div>
+                    
+                    <div class="output-files">
+                        <h3>输出文件</h3>
+                        <ul id="compressOutputFilesList"></ul>
                     </div>
                 </div>
             </div>
