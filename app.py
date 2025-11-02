@@ -52,12 +52,15 @@ def get_video_info(video_path):
             duration = float(video.duration) if video.duration is not None else 0.0
             fps = float(video.fps) if video.fps is not None else 0.0
             size = video.size if video.size is not None else (0, 0)
+            # 获取文件名和大小
+            filename = os.path.basename(video_path)
+            filesize = os.path.getsize(video_path)
+            filesize_mb = f"{filesize / (1024 * 1024):.2f} MB"
             return {
-                "duration": duration,
-                "duration_str": seconds_to_time(duration),
-                "fps": fps,
-                "width": size[0],
-                "height": size[1]
+                "filename": filename,
+                "filesize": filesize_mb,
+                "duration": seconds_to_time(duration),
+                "resolution": f"{size[0]}x{size[1]}"
             }
     except Exception as e:
         return {"error": str(e)}

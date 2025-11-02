@@ -226,7 +226,7 @@
 
                         </div>
                     </div>
-                    <table>
+                    <table id="recordTable">
                         <thead>
                             <tr>
                                 <th><input type="checkbox" id="selectRecordAllCheckbox"></th>
@@ -400,6 +400,6 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>
