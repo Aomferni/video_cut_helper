@@ -858,9 +858,9 @@ function updateSelectAllCheckbox() {
     }
 }
 
-// 更新剪辑表格
-function updateClipTable(data) {
-    const tbody = document.querySelector('#clipTable tbody');
+// 更新表格（通用函数，可处理不同表格）
+function updateTable(data, tableSelector, checkboxClass, deleteBtnClass) {
+    const tbody = document.querySelector(tableSelector + ' tbody');
     tbody.innerHTML = ''; // 清空现有内容
     
     data.forEach(row => {
@@ -870,7 +870,7 @@ function updateClipTable(data) {
         const checkboxCell = newRow.insertCell(0);
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
-        checkbox.className = 'row-checkbox';
+        checkbox.className = checkboxClass;
         checkboxCell.appendChild(checkbox);
         
         // 获取列名（支持中英文）
@@ -881,7 +881,7 @@ function updateClipTable(data) {
         const titleKey = Object.keys(row).find(key => 
             key.toLowerCase() === '剪辑标题' || key.toLowerCase() === 'title');
         
-        // 确保数据是字符串类型
+        // 确保数据是字符串类型，并处理NaN值
         const startTime = startTimeKey ? String(row[startTimeKey] || '00:00:00') : '00:00:00';
         const endTime = endTimeKey ? String(row[endTimeKey] || '00:00:00') : '00:00:00';
         const title = titleKey ? String(row[titleKey] || '') : '';
@@ -905,18 +905,23 @@ function updateClipTable(data) {
         cell3.textContent = title;
         
         // 计算时长
-        const duration = calculateDuration(startTime, endTime);
+        const duration = calculateDuration(formattedStartTime, formattedEndTime);
         durationCell.className = 'duration-cell';
-        durationCell.textContent = duration;
+        durationCell.textContent = isNaN(duration) ? '0' : duration;
         
         // 添加删除按钮
         const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'delete-row-btn';
+        deleteBtn.className = deleteBtnClass;
         deleteBtn.textContent = '删除';
         deleteBtn.addEventListener('click', function() {
             if (confirm('确定要删除这一行吗？')) {
                 tbody.removeChild(newRow);
-                updateSelectAllCheckbox();
+                // 根据表格类型更新全选复选框状态
+                if (tableSelector === '#clipTable') {
+                    updateSelectAllCheckbox();
+                } else {
+                    updateRecordSelectAllCheckbox();
+                }
             }
         });
         actionCell.appendChild(deleteBtn);
@@ -924,12 +929,12 @@ function updateClipTable(data) {
         // 添加时间变化监听器以自动计算时长
         cell1.addEventListener('input', function() {
             const duration = calculateDuration(cell1.textContent, cell2.textContent);
-            durationCell.textContent = duration;
+            durationCell.textContent = isNaN(duration) ? '0' : duration;
         });
         
         cell2.addEventListener('input', function() {
             const duration = calculateDuration(cell1.textContent, cell2.textContent);
-            durationCell.textContent = duration;
+            durationCell.textContent = isNaN(duration) ? '0' : duration;
         });
         
         // 添加点击事件以激活单元格
@@ -947,12 +952,31 @@ function updateClipTable(data) {
         
         // 添加复选框事件监听器
         checkbox.addEventListener('change', function() {
-            updateSelectAllCheckbox();
+            // 根据表格类型更新全选复选框状态
+            if (tableSelector === '#clipTable') {
+                updateSelectAllCheckbox();
+            } else {
+                updateRecordSelectAllCheckbox();
+            }
         });
     });
     
-    // 更新全选复选框状态
-    updateSelectAllCheckbox();
+    // 根据表格类型更新全选复选框状态
+    if (tableSelector === '#clipTable') {
+        updateSelectAllCheckbox();
+    } else {
+        updateRecordSelectAllCheckbox();
+    }
+}
+
+// 更新剪辑表格（保持原函数名以确保向后兼容）
+function updateClipTable(data) {
+    updateTable(data, '#clipTable', 'row-checkbox', 'delete-row-btn');
+}
+
+// 使用上传的Excel数据填充记录时间点表格（修改为调用通用函数）
+function fillRecordTableWithData(data) {
+    updateTable(data, '#player table', 'record-row-checkbox', 'delete-record-row-btn');
 }
 
 // 初始化视频压缩标签页
@@ -1524,7 +1548,7 @@ function initRecordTimeTable() {
         playRecordActiveTime();
     });
     
-    // 上传Excel按钮（使用与视频剪辑页面相同的逻辑）
+    // 上传Excel按钮（修改为与视频剪辑页面相同的逻辑）
     document.getElementById('importRecordExcelBtn').addEventListener('click', function() {
         const fileInput = document.getElementById('importRecordExcelFile');
         if (fileInput.files.length === 0) {
@@ -2258,6 +2282,117 @@ function concatVideos() {
     });
 }
 
+// 更新表格（通用函数，可处理不同表格）
+function updateTable(data, tableSelector, checkboxClass, deleteBtnClass) {
+    const tbody = document.querySelector(tableSelector + ' tbody');
+    tbody.innerHTML = ''; // 清空现有内容
+    
+    data.forEach(row => {
+        const newRow = tbody.insertRow();
+        
+        // 添加复选框单元格
+        const checkboxCell = newRow.insertCell(0);
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = checkboxClass;
+        checkboxCell.appendChild(checkbox);
+        
+        // 获取列名（支持中英文）
+        const startTimeKey = Object.keys(row).find(key => 
+            key.toLowerCase() === '开始时间' || key.toLowerCase() === 'starttime' || key.toLowerCase() === 'start');
+        const endTimeKey = Object.keys(row).find(key => 
+            key.toLowerCase() === '结束时间' || key.toLowerCase() === 'endtime' || key.toLowerCase() === 'end');
+        const titleKey = Object.keys(row).find(key => 
+            key.toLowerCase() === '剪辑标题' || key.toLowerCase() === 'title');
+        
+        // 确保数据是字符串类型
+        const startTime = startTimeKey ? String(row[startTimeKey] || '00:00:00') : '00:00:00';
+        const endTime = endTimeKey ? String(row[endTimeKey] || '00:00:00') : '00:00:00';
+        const title = titleKey ? String(row[titleKey] || '') : '';
+        
+        const cell1 = newRow.insertCell(1);
+        const cell2 = newRow.insertCell(2);
+        const cell3 = newRow.insertCell(3);
+        const durationCell = newRow.insertCell(4);
+        const actionCell = newRow.insertCell(5);
+        
+        cell1.className = 'editable';
+        cell1.contentEditable = true;
+        cell1.textContent = startTime;
+        
+        cell2.className = 'editable';
+        cell2.contentEditable = true;
+        cell2.textContent = endTime;
+        
+        cell3.className = 'editable';
+        cell3.contentEditable = true;
+        cell3.textContent = title;
+        
+        // 计算时长
+        const duration = calculateDuration(startTime, endTime);
+        durationCell.className = 'duration-cell';
+        durationCell.textContent = duration;
+        
+        // 添加删除按钮
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = deleteBtnClass;
+        deleteBtn.textContent = '删除';
+        deleteBtn.addEventListener('click', function() {
+            if (confirm('确定要删除这一行吗？')) {
+                tbody.removeChild(newRow);
+                // 根据表格类型更新全选复选框状态
+                if (tableSelector === '#clipTable') {
+                    updateSelectAllCheckbox();
+                } else {
+                    updateRecordSelectAllCheckbox();
+                }
+            }
+        });
+        actionCell.appendChild(deleteBtn);
+        
+        // 添加时间变化监听器以自动计算时长
+        cell1.addEventListener('input', function() {
+            const duration = calculateDuration(cell1.textContent, cell2.textContent);
+            durationCell.textContent = duration;
+        });
+        
+        cell2.addEventListener('input', function() {
+            const duration = calculateDuration(cell1.textContent, cell2.textContent);
+            durationCell.textContent = duration;
+        });
+        
+        // 添加点击事件以激活单元格
+        cell1.addEventListener('click', function() {
+            setActiveCell(this);
+        });
+        
+        cell2.addEventListener('click', function() {
+            setActiveCell(this);
+        });
+        
+        cell3.addEventListener('click', function() {
+            setActiveCell(this);
+        });
+        
+        // 添加复选框事件监听器
+        checkbox.addEventListener('change', function() {
+            // 根据表格类型更新全选复选框状态
+            if (tableSelector === '#clipTable') {
+                updateSelectAllCheckbox();
+            } else {
+                updateRecordSelectAllCheckbox();
+            }
+        });
+    });
+    
+    // 根据表格类型更新全选复选框状态
+    if (tableSelector === '#clipTable') {
+        updateSelectAllCheckbox();
+    } else {
+        updateRecordSelectAllCheckbox();
+    }
+}
+
 // 同步记录时间点表格到剪辑需求表格
 function syncRecordToClipTable() {
     // 获取记录时间点表格的所有数据行
@@ -2545,22 +2680,22 @@ function importRecordExcel() {
     reader.readAsArrayBuffer(file);
 }
 
-// 使用上传的Excel数据填充记录时间点表格
-function fillRecordTableWithData(data) {
-    if (!data || !Array.isArray(data)) {
-        console.error('Invalid data format');
-        return;
-    }
+// // 使用上传的Excel数据填充记录时间点表格
+// function fillRecordTableWithData(data) {
+//     if (!data || !Array.isArray(data)) {
+//         console.error('Invalid data format');
+//         return;
+//     }
     
-    // 清空现有表格数据
-    const tbody = document.querySelector('#player table tbody');
-    tbody.innerHTML = '';
+//     // 清空现有表格数据
+//     const tbody = document.querySelector('#player table tbody');
+//     tbody.innerHTML = '';
     
-    // 填充表格数据
-    data.forEach(row => {
-        addRecordRowWithData(row);
-    });
-}
+//     // 填充表格数据
+//     data.forEach(row => {
+//         addRecordRowWithData(row);
+//     });
+// }
 
 // 添加带数据的记录行
 function addRecordRowWithData(data) {
@@ -2576,13 +2711,9 @@ function addRecordRowWithData(data) {
     
     // 获取数据中的开始时间、结束时间、剪辑标题
     // 支持多种列名格式，并确保转换为字符串
-    let startTime = String(data['开始时间'] || data['StartTime'] || data['Start'] || '00:00:00');
-    let endTime = String(data['结束时间'] || data['EndTime'] || data['End'] || '00:00:00');
+    const startTime = String(data['开始时间'] || data['StartTime'] || data['Start'] || '00:00:00');
+    const endTime = String(data['结束时间'] || data['EndTime'] || data['End'] || '00:00:00');
     const title = String(data['剪辑标题'] || data['Title'] || '');
-    
-    // 格式化时间，确保是00:00:00格式
-    startTime = formatTime(startTime);
-    endTime = formatTime(endTime);
     
     const cell1 = newRow.insertCell(1);
     const cell2 = newRow.insertCell(2);
@@ -2648,55 +2779,7 @@ function addRecordRowWithData(data) {
     });
 }
 
-// 格式化时间为00:00:00格式
-function formatTime(timeStr) {
-    // 确保输入是字符串
-    const str = String(timeStr || '').trim();
-    
-    if (!str) return '00:00:00';
-    
-    // 如果已经是标准格式，直接返回
-    if (/^\d{2}:\d{2}:\d{2}(\.\d{3})?$/.test(str)) {
-        return str;
-    }
-    
-    // 处理各种可能的时间格式
-    try {
-        // 处理秒数格式（如：120.5）
-        if (/^\d+\.?\d*$/.test(str)) {
-            const seconds = parseFloat(str);
-            return secondsToHMS(seconds);
-        }
-        
-        // 处理带分隔符的格式（如：1:30:45 或 30:45）
-        const parts = str.split(':');
-        if (parts.length === 3) {
-            // HH:MM:SS格式
-            const hours = parseInt(parts[0]) || 0;
-            const minutes = parseInt(parts[1]) || 0;
-            const seconds = parseFloat(parts[2]) || 0;
-            return [hours, minutes, seconds].map((v, i) => 
-                i === 2 ? v.toFixed(3).padStart(6, '0') : v.toString().padStart(2, '0')
-            ).join(':');
-        } else if (parts.length === 2) {
-            // MM:SS格式
-            const minutes = parseInt(parts[0]) || 0;
-            const seconds = parseFloat(parts[1]) || 0;
-            return [0, minutes, seconds].map((v, i) => 
-                i === 2 ? v.toFixed(3).padStart(6, '0') : v.toString().padStart(2, '0')
-            ).join(':');
-        } else if (parts.length === 1) {
-            // 可能是秒数
-            const seconds = parseFloat(parts[0]) || 0;
-            return secondsToHMS(seconds);
-        }
-    } catch (e) {
-        console.error('时间格式化错误:', e);
-    }
-    
-    // 如果所有格式化都失败，返回默认值
-    return '00:00:00';
-}
+
 
 // 初始化视频压缩标签页
 function initCompressTab() {

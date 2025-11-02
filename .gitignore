@@ -1,2 +1,3 @@
 static/output/*
 static/uploads/*
+__pycache__/*
