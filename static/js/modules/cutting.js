@@ -51,6 +51,9 @@ function startCutting() {
         return;
     }
     
+    // 获取合并片段选项
+    const concatAfterCut = document.getElementById('concatAfterCut').checked;
+    
     // 发送剪辑请求到服务器
     fetch('/cut_videos', {
         method: 'POST',
@@ -59,7 +62,8 @@ function startCutting() {
         },
         body: JSON.stringify({
             video_path: uploadedVideoPath,
-            excel_data: tableData
+            excel_data: tableData,
+            concat_after_cut: concatAfterCut  // 添加合并选项
         })
     })
     .then(response => response.json())

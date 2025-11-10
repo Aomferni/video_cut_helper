@@ -277,7 +277,7 @@ def get_compression_estimate(original_size_mb, preset='medium'):
         'estimated_time_minutes': estimated_time_minutes
     }
 
-def cut_videos_from_dataframe(input_video_path, df):
+def cut_videos_from_dataframe(input_video_path, df, concat_after_cut=False):
     """根据DataFrame中的时间信息裁剪视频"""
     try:
         if not os.path.exists(input_video_path):
@@ -287,29 +287,61 @@ def cut_videos_from_dataframe(input_video_path, df):
         os.makedirs(output_dir, exist_ok=True)
         
         result_messages = []
+        cut_files = []  # 保存剪辑后的文件路径，用于后续合并
+        
+        # 打印DataFrame内容，用于调试
+        print(f"DataFrame内容: {df}")
+        print(f"DataFrame行数: {len(df)}")
         
         # 遍历每一行裁剪
-        for _, row in df.iterrows():
-            # 检查结束时间是否为空
+        for index, row in df.iterrows():
+            print(f"处理第{index+1}行数据: {row}")
+            # 获取开始时间和结束时间
+            start_time = row.get("开始时间", row.get("StartTime", "00:00:00"))
             end_time = row.get("结束时间", row.get("EndTime", ""))
-            # 检查是否为空值或空字符串
+            print(f"开始时间: {start_time}, 类型: {type(start_time)}")
+            print(f"结束时间: {end_time}, 类型: {type(end_time)}")
+            
+            # 检查开始时间和结束时间是否有效
+            # 检查结束时间是否为空
             if pd.isna(end_time) or (not end_time) or (str(end_time).strip() == ""):
                 message = f"跳过：结束时间为空的行"
                 result_messages.append(message)
                 print(message)
                 continue
                 
-            start_time = row.get("开始时间", row.get("StartTime", "00:00:00"))
+            # 检查开始时间是否为空
+            if pd.isna(start_time) or (not start_time) or (str(start_time).strip() == ""):
+                message = f"跳过：开始时间为空的行"
+                result_messages.append(message)
+                print(message)
+                continue
+            
             title = str(row.get("剪辑标题", row.get("Title", "untitled"))).strip().replace("/", "-").replace("\\", "-")
+            print(f"标题: {title}")
             
             start = time_to_seconds(start_time)
             end = time_to_seconds(end_time)
+            print(f"开始时间(秒): {start}, 结束时间(秒): {end}")
+            
+            # 检查时间是否有效（开始时间必须小于结束时间，且结束时间必须大于0）
+            if start >= end:
+                message = f"跳过：时间无效（开始时间必须小于结束时间）"
+                result_messages.append(message)
+                print(message)
+                continue
+            
             output_path = os.path.join(output_dir, f"{title}.mp4")
+            print(f"输出路径: {output_path}")
 
             if os.path.exists(output_path):
                 message = f"已存在，跳过：{output_path}"
                 result_messages.append(message)
                 print(message)
+                # 如果需要合并，将已存在的文件也添加到合并列表中
+                if concat_after_cut:
+                    cut_files.append(output_path)  # 添加到合并列表
+                    print(f"添加已存在的文件到合并列表: {output_path}")
                 continue
 
             message = f"正在裁剪：{title} ({start}s - {end}s)"
@@ -354,6 +386,11 @@ def cut_videos_from_dataframe(input_video_path, df):
                     message = f"✅ 成功裁剪（MoviePy）：{title} ({start}s - {end}s)"
                 result_messages.append(message)
                 print(message)
+                
+                # 如果需要合并，将剪辑后的文件添加到列表
+                if concat_after_cut:
+                    cut_files.append(output_path)
+                    print(f"添加新剪辑的文件到合并列表: {output_path}")
             except Exception as e:
                 message = f"❌ 裁剪失败：{title} - {str(e)}"
                 result_messages.append(message)
@@ -361,6 +398,21 @@ def cut_videos_from_dataframe(input_video_path, df):
         
         success_message = "✅ 所有片段裁剪完成！"
         result_messages.append(success_message)
+        
+        # 如果需要合并片段，则执行合并操作
+        if concat_after_cut:
+            print(f"合并选项已启用，找到 {len(cut_files)} 个文件")
+            if cut_files:
+                try:
+                    # 打印要合并的文件列表，用于调试
+                    print(f"要合并的文件列表: {cut_files}")
+                    concat_result = concatenate_videos(cut_files, os.path.join(output_dir, "合并结果.mp4"))
+                    result_messages.append(f"合并结果: {concat_result}")
+                except Exception as e:
+                    result_messages.append(f"❌ 合并失败: {str(e)}")
+            else:
+                result_messages.append("❌ 没有找到要合并的文件")
+        
         return "\n".join(result_messages)
     
     except Exception as e:
@@ -467,6 +519,7 @@ def cut_videos_route():
     data = request.get_json()
     video_path = data.get('video_path')
     excel_data = data.get('excel_data')
+    concat_after_cut = data.get('concat_after_cut', False)  # 获取合并选项，默认为False
     
     if not video_path or not os.path.exists(video_path):
         return jsonify({'error': '视频文件不存在'})
@@ -477,8 +530,8 @@ def cut_videos_route():
     # 将数据转换为DataFrame
     df = pd.DataFrame(excel_data)
     
-    # 执行剪辑
-    result = cut_videos_from_dataframe(video_path, df)
+    # 执行剪辑，传递合并选项
+    result = cut_videos_from_dataframe(video_path, df, concat_after_cut)
     
     return jsonify({'result': result})
 
