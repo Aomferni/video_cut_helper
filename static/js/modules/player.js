@@ -88,6 +88,28 @@ function initPlayerTab() {
         const hoverTimeDisplay = document.getElementById('hoverTimeDisplay');
         hoverTimeDisplay.style.display = 'none';
     });
+    
+    // 添加鼠标滚轮事件监听器，用于精细调整时间
+    progressContainer.addEventListener('wheel', function(e) {
+        // 阻止页面滚动
+        e.preventDefault();
+        
+        // 检查视频是否已加载
+        if (videoPlayer.duration) {
+            // 滚轮调整步长（1秒）
+            const timeStep = 1;
+            
+            // 根据滚轮方向调整时间
+            if (e.deltaY < 0) {
+                // 向上滚动，快进1秒
+                videoPlayer.currentTime = Math.min(videoPlayer.currentTime + timeStep, videoPlayer.duration);
+            } else {
+                // 向下滚动，快退1秒
+                videoPlayer.currentTime = Math.max(videoPlayer.currentTime - timeStep, 0);
+            }
+        }
+    });
+    
     // 播放/暂停按钮
     document.getElementById('playPauseBtn').addEventListener('click', function() {
         if (videoPlayer.paused) {
