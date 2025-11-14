@@ -1,4 +1,6 @@
 from flask import Flask, render_template, request, jsonify, send_file
+from typing import Any, Dict, Union, Tuple
+from flask.wrappers import Response
 import os
 import pandas as pd
 from moviepy.editor import VideoFileClip, concatenate_videoclips
@@ -44,6 +46,23 @@ def seconds_to_time(seconds):
     m = int((seconds % 3600) // 60)
     s = seconds % 60
     return f"{h:02d}:{m:02d}:{s:06.3f}"
+
+def is_video_file(filename):
+    """检查文件是否为视频文件"""
+    video_extensions = {'.mp4', '.avi', '.mov', '.mkv', '.flv', '.wmv', '.webm', '.m4v'}
+    _, ext = os.path.splitext(filename.lower())
+    return ext in video_extensions
+
+def format_file_size(size_bytes):
+    """格式化文件大小"""
+    if size_bytes < 1024:
+        return f"{size_bytes} B"
+    elif size_bytes < 1024 * 1024:
+        return f"{size_bytes / 1024:.1f} KB"
+    elif size_bytes < 1024 * 1024 * 1024:
+        return f"{size_bytes / (1024 * 1024):.1f} MB"
+    else:
+        return f"{size_bytes / (1024 * 1024 * 1024):.1f} GB"
 
 def get_video_info(video_path):
     """获取视频信息"""
@@ -94,6 +113,10 @@ def concatenate_videos(video_paths, output_path):
             if not os.path.exists(fp):
                 return f"❌ 视频文件不存在: {fp}"
         
+        # 检查文件类型，如果都是音频文件，则使用音频合并
+        if video_paths and all(fp.endswith('.mp3') for fp in video_paths):
+            return concatenate_audios(video_paths, output_path)
+        
         # 1. 生成 concat 清单
         list_path = os.path.join(tempfile.gettempdir(), f"concat_list_{uuid.uuid4().hex}.txt")
         with open(list_path, "w", encoding="utf-8") as f:
@@ -137,51 +160,72 @@ def concatenate_videos(video_paths, output_path):
     except Exception as e:
         return f"❌ 视频拼接失败: {str(e)}"
 
-def fallback_concatenate_videos(video_paths, output_path):
-    """回退方案：使用MoviePy进行拼接"""
+def concatenate_audios(audio_paths, output_path):
+    """拼接多个音频文件"""
     try:
-        clips = []
-        for fp in video_paths:
-            if os.path.exists(fp):
-                clip = VideoFileClip(fp)
-                clips.append(clip)
-            else:
-                return f"❌ 视频文件不存在: {fp}"
+        # 检查所有文件是否存在
+        for fp in audio_paths:
+            if not os.path.exists(fp):
+                return f"❌ 音频文件不存在: {fp}"
         
-        if clips:
-            # 拼接所有剪辑
-            final_clip = concatenate_videoclips(clips)
-            
-            # 保存结果
-            final_clip.write_videofile(
-                output_path,
-                codec="libx264",
-                audio_codec="aac",
-                temp_audiofile="temp-audio.m4a",
-                remove_temp=True,
-                verbose=False,
-                logger=None,
-                ffmpeg_params=[
-                    "-crf", "23",
-                    "-movflags", "+faststart",
-                    "-avoid_negative_ts", "make_zero",
-                    "-fflags", "+genpts",
-                    "-async", "1",
-                    "-vsync", "1"
-                ]
-            )
-            
-            # 关闭所有剪辑
-            for clip in clips:
-                clip.close()
-            final_clip.close()
-            
-            return f"✅ 视频拼接完成（MoviePy方案）：{output_path}"
-        else:
-            return "❌ 没有有效的视频文件可以拼接"
-            
+        # 1. 生成 concat 清单
+        list_path = os.path.join(tempfile.gettempdir(), f"concat_list_{uuid.uuid4().hex}.txt")
+        with open(list_path, "w", encoding="utf-8") as f:
+            for fp in audio_paths:
+                # 处理包含特殊字符的路径
+                # 使用绝对路径并规范化路径
+                abs_path = os.path.abspath(fp)
+                # 对于包含特殊字符的路径，使用file指令的另一种格式
+                f.write(f"file '{abs_path}'\n")
+
+        # 2. 零重编码拼接音频
+        cmd = [
+            FFMPEG_PATH,
+            '-f', 'concat',
+            '-safe', '0',
+            '-i', list_path,
+            '-c', 'copy',
+            '-y',
+            output_path
+        ]
+        
+        # 打印命令用于调试
+        print(f"执行FFmpeg命令: {' '.join(cmd)}")
+        
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)  # 10分钟超时
+        
+        # 3. 清理
+        if os.path.exists(list_path):
+            os.remove(list_path)
+        
+        if result.returncode != 0:
+            error_msg = f"FFmpeg错误: {result.stderr}"
+            print(error_msg)
+            raise Exception(error_msg)
+        
+        return f"✅ 音频拼接完成：{output_path}"
+    except subprocess.TimeoutExpired:
+        return "❌ 音频拼接超时，请检查音频文件大小"
     except Exception as e:
-        return f"❌ 回退方案也失败了: {str(e)}"
+        return f"❌ 音频拼接失败: {str(e)}"
+
+def fallback_concatenate_videos(video_paths, output_path):
+    """回退方案：使用MoviePy进行视频拼接"""
+    try:
+        from moviepy.editor import VideoFileClip, concatenate_videoclips
+        
+        clips = [VideoFileClip(path) for path in video_paths]
+        final_clip = concatenate_videoclips(clips)
+        final_clip.write_videofile(output_path, codec='libx264', audio_codec='aac')
+        
+        # 清理资源
+        for clip in clips:
+            clip.close()
+        final_clip.close()
+        
+        return f"✅ 视频拼接完成：{output_path}"
+    except Exception as e:
+        return f"❌ 视频拼接失败: {str(e)}"
 
 def compress_video(input_path, output_path, preset='medium', speed_mode='medium'):
     """压缩视频到指定预设"""
@@ -277,7 +321,7 @@ def get_compression_estimate(original_size_mb, preset='medium'):
         'estimated_time_minutes': estimated_time_minutes
     }
 
-def cut_videos_from_dataframe(input_video_path, df, concat_after_cut=False):
+def cut_videos_from_dataframe(input_video_path, df, concat_after_cut=False, audio_only=False):
     """根据DataFrame中的时间信息裁剪视频"""
     try:
         if not os.path.exists(input_video_path):
@@ -331,8 +375,14 @@ def cut_videos_from_dataframe(input_video_path, df, concat_after_cut=False):
                 print(message)
                 continue
             
-            output_path = os.path.join(output_dir, f"{title}.mp4")
-            print(f"输出路径: {output_path}")
+            if audio_only:
+                # 仅导出音频，使用MP3格式
+                output_path = os.path.join(output_dir, f"{title}.mp3")
+                print(f"输出路径: {output_path}")
+            else:
+                # 导出视频
+                output_path = os.path.join(output_dir, f"{title}.mp4")
+                print(f"输出路径: {output_path}")
 
             if os.path.exists(output_path):
                 message = f"已存在，跳过：{output_path}"
@@ -349,41 +399,64 @@ def cut_videos_from_dataframe(input_video_path, df, concat_after_cut=False):
             print(message)
             
             try:
-                # 使用FFmpeg零重编码精准切片，保证音画同步
-                if smart_cut(input_video_path, output_path, start, end):
-                    message = f"✅ 成功裁剪：{title} ({start}s - {end}s)"
+                if audio_only:
+                    # 仅导出音频
+                    cmd = [
+                        FFMPEG_PATH,
+                        '-i', input_video_path,
+                        '-ss', str(start),
+                        '-to', str(end),
+                        '-vn',  # 禁用视频
+                        '-acodec', 'libmp3lame',  # 使用MP3编码
+                        '-ar', '44100',  # 音频采样率
+                        '-ac', '2',  # 双声道
+                        '-b:a', '192k',  # 音频比特率
+                        '-y',
+                        output_path
+                    ]
+                    
+                    result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+                    
+                    if result.returncode == 0:
+                        message = f"✅ 成功导出音频：{title} ({start}s - {end}s)"
+                    else:
+                        raise Exception(f"FFmpeg音频导出错误: {result.stderr}")
                 else:
-                    # 如果FFmpeg方法失败，回退到MoviePy方法
-                    message = f"⚠️ FFmpeg方法失败，使用MoviePy方法"
-                    with VideoFileClip(input_video_path) as video:
-                        # 直接使用subclip方法
-                        clip = video.subclip(start, end)
-                        
-                        # 优化编码参数，确保音画同步
-                        clip.write_videofile(
-                            output_path,
-                            verbose=False,  # 减少输出信息
-                            logger=None,    # 禁用logger
-                            codec="libx264",
-                            audio_codec="aac",
-                            temp_audiofile="temp-audio.m4a",
-                            remove_temp=True,
-                            fps=video.fps,
-                            preset="medium",
-                            threads=4,
-                            ffmpeg_params=[
-                                "-crf", "23",  # 稍高的CRF值，平衡质量和文件大小
-                                "-movflags", "+faststart",  # 网络优化
-                                "-avoid_negative_ts", "make_zero",  # 确保时间戳正确
-                                "-fflags", "+genpts",  # 重新生成PTS
-                                "-async", "1",  # 音频同步
-                                "-vsync", "1"   # 视频同步
-                            ]
-                        )
-                        
-                        # 重要：显式关闭剪辑释放资源
-                        clip.close()
-                    message = f"✅ 成功裁剪（MoviePy）：{title} ({start}s - {end}s)"
+                    # 使用FFmpeg零重编码精准切片，保证音画同步
+                    if smart_cut(input_video_path, output_path, start, end):
+                        message = f"✅ 成功裁剪：{title} ({start}s - {end}s)"
+                    else:
+                        # 如果FFmpeg方法失败，回退到MoviePy方法
+                        message = f"⚠️ FFmpeg方法失败，使用MoviePy方法"
+                        with VideoFileClip(input_video_path) as video:
+                            # 直接使用subclip方法
+                            clip = video.subclip(start, end)
+                            
+                            # 优化编码参数，确保音画同步
+                            clip.write_videofile(
+                                output_path,
+                                verbose=False,  # 减少输出信息
+                                logger=None,    # 禁用logger
+                                codec="libx264",
+                                audio_codec="aac",
+                                temp_audiofile="temp-audio.m4a",
+                                remove_temp=True,
+                                fps=video.fps,
+                                preset="medium",
+                                threads=4,
+                                ffmpeg_params=[
+                                    "-crf", "23",  # 稍高的CRF值，平衡质量和文件大小
+                                    "-movflags", "+faststart",  # 网络优化
+                                    "-avoid_negative_ts", "make_zero",  # 确保时间戳正确
+                                    "-fflags", "+genpts",  # 重新生成PTS
+                                    "-async", "1",  # 音频同步
+                                    "-vsync", "1"   # 视频同步
+                                ]
+                            )
+                            
+                            # 重要：显式关闭剪辑释放资源
+                            clip.close()
+                        message = f"✅ 成功裁剪（MoviePy）：{title} ({start}s - {end}s)"
                 result_messages.append(message)
                 print(message)
                 
@@ -406,7 +479,14 @@ def cut_videos_from_dataframe(input_video_path, df, concat_after_cut=False):
                 try:
                     # 打印要合并的文件列表，用于调试
                     print(f"要合并的文件列表: {cut_files}")
-                    concat_result = concatenate_videos(cut_files, os.path.join(output_dir, "合并结果.mp4"))
+                    
+                    # 根据文件类型决定输出文件扩展名
+                    if audio_only and cut_files and all(fp.endswith('.mp3') for fp in cut_files):
+                        output_filename = "合并结果.mp3"
+                    else:
+                        output_filename = "合并结果.mp4"
+                    
+                    concat_result = concatenate_videos(cut_files, os.path.join(output_dir, output_filename))
                     result_messages.append(f"合并结果: {concat_result}")
                 except Exception as e:
                     result_messages.append(f"❌ 合并失败: {str(e)}")
@@ -433,7 +513,7 @@ def manage():
     return render_template('manage.html')
 
 @app.route('/upload_video', methods=['POST'])
-def upload_video():
+def upload_video() -> Response:
     if 'video' not in request.files:
         return jsonify({'error': '没有视频文件'})
     
@@ -442,13 +522,15 @@ def upload_video():
         return jsonify({'error': '没有选择文件'})
     
     if file:
-        filename = file.filename
+        filename = str(file.filename)  # 确保filename是字符串类型
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(filepath)
         return jsonify({'success': '文件上传成功', 'filepath': filepath, 'filename': filename})
+    # 添加默认返回值
+    return jsonify({'error': '未知错误'})
 
 @app.route('/upload_excel', methods=['POST'])
-def upload_excel():
+def upload_excel() -> Response:
     if 'excel' not in request.files:
         return jsonify({'error': '没有Excel文件'})
     
@@ -457,7 +539,7 @@ def upload_excel():
         return jsonify({'error': '没有选择文件'})
     
     if file:
-        filename = file.filename
+        filename = str(file.filename)  # 确保filename是字符串类型
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(filepath)
         
@@ -488,6 +570,8 @@ def upload_excel():
             })
         except Exception as e:
             return jsonify({'error': f'读取Excel文件失败: {str(e)}'})
+    # 添加默认返回值
+    return jsonify({'error': '未知错误'})
 
 @app.route('/get_video_info', methods=['POST'])
 def get_video_info_route():
@@ -520,6 +604,7 @@ def cut_videos_route():
     video_path = data.get('video_path')
     excel_data = data.get('excel_data')
     concat_after_cut = data.get('concat_after_cut', False)  # 获取合并选项，默认为False
+    audio_only = data.get('audio_only', False)  # 获取仅导出音频选项，默认为False
     
     if not video_path or not os.path.exists(video_path):
         return jsonify({'error': '视频文件不存在'})
@@ -530,8 +615,8 @@ def cut_videos_route():
     # 将数据转换为DataFrame
     df = pd.DataFrame(excel_data)
     
-    # 执行剪辑，传递合并选项
-    result = cut_videos_from_dataframe(video_path, df, concat_after_cut)
+    # 执行剪辑，传递合并选项和仅导出音频选项
+    result = cut_videos_from_dataframe(video_path, df, concat_after_cut, audio_only)
     
     return jsonify({'result': result})
 
@@ -656,30 +741,23 @@ def list_output_files():
 
 @app.route('/list_upload_videos')
 def list_upload_videos():
-    """列出所有上传的视频文件"""
-    upload_dir = app.config['UPLOAD_FOLDER']
-    if not os.path.exists(upload_dir):
-        return jsonify({'files': []})
-    
-    files = []
-    # 支持的视频文件扩展名
-    video_extensions = {'.mp4', '.avi', '.mov', '.mkv', '.flv', '.wmv', '.webm', '.m4v'}
-    
-    for filename in os.listdir(upload_dir):
-        # 检查文件扩展名是否为视频格式
-        _, ext = os.path.splitext(filename.lower())
-        if ext in video_extensions:
-            filepath = os.path.join(upload_dir, filename)
-            file_size = os.path.getsize(filepath)
-            # 转换为MB
-            file_size_mb = round(file_size / (1024 * 1024), 2)
-            files.append({
-                'name': filename,
-                'path': filepath,
-                'size': f"{file_size_mb} MB"
-            })
-    
-    return jsonify({'files': files})
+    """列出上传的视频文件"""
+    try:
+        files = []
+        upload_dir = app.config['UPLOAD_FOLDER']
+        if os.path.exists(upload_dir):
+            for filename in os.listdir(upload_dir):
+                filepath = os.path.join(upload_dir, filename)
+                if os.path.isfile(filepath) and is_video_file(filename):
+                    file_size = format_file_size(os.path.getsize(filepath))
+                    files.append({
+                        'name': filename,
+                        'path': filepath,
+                        'size': file_size
+                    })
+        return jsonify({'files': files})
+    except Exception as e:
+        return jsonify({'error': str(e)})
 
 @app.route('/download/<filename>')
 def download_file(filename):

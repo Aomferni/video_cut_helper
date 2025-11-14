@@ -21,6 +21,7 @@
             <button class="tab-button" data-tab="player">视频打标</button>
             <button class="tab-button" data-tab="concat">视频拼接</button>
             <button class="tab-button" data-tab="compress">视频压缩</button>
+            
         </div>
         
         <!-- 视频剪辑标签页 -->
@@ -127,6 +128,10 @@
                         <div style="margin-top: 10px; display: flex; align-items: center; justify-content: center;">
                             <input type="checkbox" id="concatAfterCut" style="margin-right: 8px;">
                             <label for="concatAfterCut" style="font-size: 16px;">合并片段</label>
+                        </div>
+                        <div style="margin-top: 10px; display: flex; align-items: center; justify-content: center;">
+                            <input type="checkbox" id="audioOnly" style="margin-right: 8px;">
+                            <label for="audioOnly" style="font-size: 16px;">仅导出音频</label>
                         </div>
                     </div>
                     <div style="margin-top: 10px;">
@@ -401,6 +406,8 @@
                 </div>
             </div>
         </div>
+        
+
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
