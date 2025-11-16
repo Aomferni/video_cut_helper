@@ -308,6 +308,25 @@
                     <label>拼接结果</label>
                     <div id="concatResult" class="result-box">请上传多个视频文件，然后点击"开始拼接"</div>
                     
+                    <!-- 添加设置视频封面功能 -->
+                    <div class="form-group" style="margin-top: 20px;">
+                        <label for="coverImageFile">设置视频封面</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="file" id="coverImageFile" accept="image/*" style="flex: 1;">
+                            <button id="uploadCoverImageBtn" style="white-space: nowrap;">上传封面</button>
+                        </div>
+                        <div style="margin-top: 10px;">
+                            <select id="selectVideoForCover" style="width: 100%;">
+                                <option value="">请选择要设置封面的视频</option>
+                            </select>
+                        </div>
+                        <div style="margin-top: 10px; text-align: center;">
+                            <button id="setCoverButton" style="padding: 10px 20px; background-color: #9C27B0; box-shadow: 0 4px 8px rgba(156, 39, 176, 0.3);">
+                                <span style="font-weight: bold;">🖼️</span> 应用封面
+                            </button>
+                        </div>
+                    </div>
+                    
                     <div class="output-files">
                         <h3>输出文件</h3>
                         <ul id="outputFilesList"></ul>

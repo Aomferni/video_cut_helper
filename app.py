@@ -160,6 +160,48 @@ def concatenate_videos(video_paths, output_path):
     except Exception as e:
         return f"❌ 视频拼接失败: {str(e)}"
 
+
+def set_video_cover(video_path, cover_path, output_path):
+    """为视频设置封面图片"""
+    try:
+        if not os.path.exists(video_path):
+            return f"❌ 错误：找不到视频文件 {video_path}"
+            
+        if not os.path.exists(cover_path):
+            return f"❌ 错误：找不到封面图片文件 {cover_path}"
+        
+        # 使用FFmpeg为视频设置封面
+        # -i video_path: 输入视频文件
+        # -i cover_path: 输入封面图片文件
+        # -map 0: 选择第一个输入文件(视频)的所有流
+        # -map 1: 选择第二个输入文件(图片)的所有流
+        # -c copy: 复制所有流，不重新编码
+        # -disposition:v:1 attached_pic: 将第二个视频流(图片)设置为封面
+        cmd = [
+            FFMPEG_PATH,
+            '-i', video_path,
+            '-i', cover_path,
+            '-map', '0',
+            '-map', '1',
+            '-c', 'copy',
+            '-disposition:v:1', 'attached_pic',
+            '-y',
+            output_path
+        ]
+        
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)  # 5分钟超时
+        
+        if result.returncode != 0:
+            raise Exception(f"FFmpeg错误: {result.stderr}")
+            
+        return f"✅ 视频封面设置完成：{output_path}"
+        
+    except subprocess.TimeoutExpired:
+        return "❌ 视频封面设置超时，请检查文件大小"
+    except Exception as e:
+        return f"❌ 视频封面设置失败: {str(e)}"
+
+
 def concatenate_audios(audio_paths, output_path):
     """拼接多个音频文件"""
     try:
@@ -624,7 +666,7 @@ def cut_videos_route():
 def concat_videos_route():
     data = request.get_json()
     video_paths = data.get('video_paths', [])
-    output_name = data.get('output_name', '拼接结果.mp4')
+    output_name = data.get('output_filename', '拼接结果.mp4')
     
     if not video_paths:
         return jsonify({'error': '没有选择视频文件'})
@@ -640,7 +682,7 @@ def concat_videos_route():
     # 拼接视频
     result = concatenate_videos(video_paths, output_path)
     
-    return jsonify({'result': result, 'output_path': output_path if '✅' in result else None})
+    return jsonify({'result': result, 'output_file': os.path.basename(output_path) if '✅' in result else None, 'output_path': output_path if '✅' in result else None})
 
 @app.route('/list_all_files')
 def list_all_files():
@@ -854,6 +896,39 @@ def get_compression_estimate_route():
         return jsonify(estimate)
     except Exception as e:
         return jsonify({'error': f'处理过程中出现错误: {str(e)}'})
+
+
+@app.route('/set_video_cover', methods=['POST'])
+def set_video_cover_route():
+    """设置视频封面路由"""
+    try:
+        data = request.get_json()
+        video_path = data.get('video_path')
+        cover_path = data.get('cover_path')
+        
+        if not video_path or not os.path.exists(video_path):
+            return jsonify({'error': '视频文件不存在'})
+            
+        if not cover_path or not os.path.exists(cover_path):
+            return jsonify({'error': '封面图片文件不存在'})
+        
+        # 生成输出文件路径
+        filename = os.path.basename(video_path)
+        name, ext = os.path.splitext(filename)
+        output_filename = f"{name}_with_cover{ext}"
+        output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
+        
+        # 设置视频封面
+        result = set_video_cover(video_path, cover_path, output_path)
+        
+        return jsonify({
+            'result': result,
+            'output_path': output_path if '✅' in result else None,
+            'output_filename': output_filename if '✅' in result else None
+        })
+    except Exception as e:
+        return jsonify({'error': f'处理过程中出现错误: {str(e)}'})
+
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5001)

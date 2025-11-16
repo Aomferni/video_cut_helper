@@ -2,6 +2,7 @@
 
 // 全局变量
 let uploadedConcatVideos = [];
+let selectedCoverImage = null;
 
 /**
  * 初始化视频拼接标签页
@@ -78,6 +79,17 @@ function initConcatTab() {
     document.getElementById('concatButton').addEventListener('click', function() {
         concatVideos();
     });
+    
+    // 上传封面图片按钮
+    document.getElementById('uploadCoverImageBtn').addEventListener('click', function() {
+        uploadCoverImage();
+    });
+    
+    // 应用封面按钮
+    document.getElementById('setCoverButton').addEventListener('click', function() {
+        setVideoCover();
+    });
+    
     // 初始化输出文件列表
     updateOutputFilesList();
 }
@@ -86,6 +98,7 @@ function initConcatTab() {
  * 刷新视频列表（视频拼接页面）
  */
 function refreshVideoListForConcat() {
+    // 获取上传的视频文件
     fetch('/list_upload_videos')
     .then(response => response.json())
     .then(data => {
@@ -95,6 +108,65 @@ function refreshVideoListForConcat() {
         selectElement.innerHTML = '';
         selectElement.appendChild(defaultOption);
         // 添加视频文件选项
+        data.files.forEach(file => {
+            const option = document.createElement('option');
+            option.value = file.path;
+            option.textContent = `${file.name} (${file.size})`;
+            selectElement.appendChild(option);
+        });
+        
+        // 同时更新设置封面的视频选择下拉框
+        updateVideoSelectForCover(data.files);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+    
+    // 获取输出文件并添加到设置封面的视频选择下拉框
+    fetch('/list_output_files')
+    .then(response => response.json())
+    .then(data => {
+        const selectElement = document.getElementById('selectVideoForCover');
+        // 保留默认选项
+        const defaultOption = selectElement.options[0];
+        selectElement.innerHTML = '';
+        selectElement.appendChild(defaultOption);
+        // 添加输出文件选项
+        data.files.forEach(file => {
+            const option = document.createElement('option');
+            option.value = file.path;
+            option.textContent = `${file.name} (${file.size})`;
+            selectElement.appendChild(option);
+        });
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+
+/**
+ * 更新设置封面的视频选择下拉框
+ */
+function updateVideoSelectForCover(uploadFiles) {
+    const selectElement = document.getElementById('selectVideoForCover');
+    // 保留默认选项
+    const defaultOption = selectElement.options[0];
+    selectElement.innerHTML = '';
+    selectElement.appendChild(defaultOption);
+    
+    // 添加上传文件选项
+    uploadFiles.forEach(file => {
+        const option = document.createElement('option');
+        option.value = file.path;
+        option.textContent = `${file.name} (${file.size})`;
+        selectElement.appendChild(option);
+    });
+    
+    // 获取输出文件并添加到下拉框
+    fetch('/list_output_files')
+    .then(response => response.json())
+    .then(data => {
+        // 添加输出文件选项
         data.files.forEach(file => {
             const option = document.createElement('option');
             option.value = file.path;
@@ -236,6 +308,91 @@ function concatVideos() {
             resultBox.textContent = '处理失败: ' + data.error;
         } else {
             resultBox.textContent = '视频拼接完成: ' + data.output_file;
+            // 更新输出文件列表
+            updateOutputFilesList();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        resultBox.textContent = '处理失败: ' + error;
+    });
+}
+
+/**
+ * 上传封面图片
+ */
+function uploadCoverImage() {
+    const fileInput = document.getElementById('coverImageFile');
+    if (fileInput.files.length === 0) {
+        alert('请先选择封面图片文件');
+        return;
+    }
+    
+    const file = fileInput.files[0];
+    const formData = new FormData();
+    formData.append('video', file);  // 使用相同的接口上传图片
+    
+    fetch('/upload_video', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert('上传失败: ' + data.error);
+        } else {
+            selectedCoverImage = data.filepath;
+            alert('封面图片上传成功');
+            // 刷新视频列表以包含新上传的图片
+            refreshVideoListForConcat();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('上传失败: ' + error);
+    });
+}
+
+/**
+ * 设置视频封面
+ */
+function setVideoCover() {
+    const selectElement = document.getElementById('selectVideoForCover');
+    const videoPath = selectElement.value;
+    
+    if (!videoPath) {
+        alert('请先选择要设置封面的视频文件');
+        return;
+    }
+    
+    if (!selectedCoverImage) {
+        alert('请先上传封面图片');
+        return;
+    }
+    
+    const resultBox = document.getElementById('concatResult');
+    resultBox.textContent = "正在设置视频封面...";
+    
+    // 准备要发送的数据
+    const requestData = {
+        video_path: videoPath,
+        cover_path: selectedCoverImage
+    };
+    
+    // 发送设置封面请求
+    fetch('/set_video_cover', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            resultBox.textContent = '处理失败: ' + data.error;
+        } else {
+            resultBox.textContent = '视频封面设置完成: ' + data.output_filename;
             // 更新输出文件列表
             updateOutputFilesList();
         }
