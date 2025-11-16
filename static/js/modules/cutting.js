@@ -54,6 +54,22 @@ function startCutting() {
     // 获取合并片段选项
     const concatAfterCut = document.getElementById('concatAfterCut').checked;
     
+    // 获取自定义合并文件名（如果需要合并）
+    let concatFileName = null;
+    if (concatAfterCut) {
+        concatFileName = document.getElementById('concatFileName').value || '合并结果.mp4';
+        // 确保文件名有正确的扩展名
+        if (!concatFileName.endsWith('.mp4') && !concatFileName.endsWith('.mp3')) {
+            // 根据是否仅导出音频来决定扩展名
+            const audioOnly = document.getElementById('audioOnly').checked;
+            concatFileName += audioOnly ? '.mp3' : '.mp4';
+        }
+    }
+    
+    // 显示正在处理的消息
+    const cutResultElement = document.getElementById('cutResult');
+    cutResultElement.textContent = '正在处理视频剪辑...';
+    
     // 发送剪辑请求到服务器
     fetch('/cut_videos', {
         method: 'POST',
@@ -63,22 +79,23 @@ function startCutting() {
         body: JSON.stringify({
             video_path: uploadedVideoPath,
             excel_data: tableData,
-            concat_after_cut: concatAfterCut  // 添加合并选项
+            concat_after_cut: concatAfterCut,  // 添加合并选项
+            concat_file_name: concatFileName   // 添加自定义合并文件名
         })
     })
     .then(response => response.json())
     .then(data => {
         if (data.error) {
-            document.getElementById('cutResult').textContent = '剪辑失败: ' + data.error;
+            cutResultElement.textContent = '剪辑失败: ' + data.error;
         } else {
-            document.getElementById('cutResult').textContent = data.result;
+            cutResultElement.textContent = data.result;
             // 更新输出文件列表
             // updateOutputFilesList(); // 这个函数在concat.js中定义，不应该在这里调用
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        document.getElementById('cutResult').textContent = '剪辑失败: ' + error;
+        cutResultElement.textContent = '剪辑失败: ' + error;
     });
 }
 
@@ -88,6 +105,17 @@ function startCutting() {
 function initCuttingTab() {
     // 页面加载时刷新视频列表
     refreshVideoListForCutting();
+    
+    // 添加合并片段复选框事件监听器
+    document.getElementById('concatAfterCut').addEventListener('change', function() {
+        const concatFileNameContainer = document.getElementById('concatFileNameContainer');
+        if (this.checked) {
+            concatFileNameContainer.style.display = 'flex';
+        } else {
+            concatFileNameContainer.style.display = 'none';
+        }
+    });
+    
     // 选择视频文件后直接播放，不需要上传
     document.getElementById('videoFile').addEventListener('change', function(e) {
         const file = e.target.files[0];
