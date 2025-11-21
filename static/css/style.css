@@ -83,6 +83,54 @@ h1 {
     margin-bottom: 15px;
 }
 
+/* 修复选择文件组件溢出问题 */
+.form-group > div[style*="flex"],
+.file-selection-container {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.form-group select,
+.file-select {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.refresh-btn {
+    white-space: nowrap;
+}
+
+.button-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.add-btn {
+    white-space: nowrap;
+}
+
+/* 特别优化选择文件组件在小屏幕上的显示 */
+@media screen and (max-width: 768px) {
+    .form-group > div[style*="flex"],
+    .file-selection-container {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .form-group > div[style*="flex"] button,
+    .refresh-btn,
+    .add-btn {
+        width: 100%;
+    }
+    
+    .button-group {
+        width: 100%;
+    }
+}
+
 label {
     display: block;
     margin-bottom: 5px;

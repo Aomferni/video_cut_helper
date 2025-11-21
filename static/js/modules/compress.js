@@ -108,15 +108,26 @@ function initCompressTab() {
  * 刷新视频列表（视频压缩页面）
  */
 function refreshVideoListForCompress() {
+    // 确保DOM已加载完成
+    if (document.readyState !== 'loading') {
+        doRefreshVideoListForCompress();
+    } else {
+        document.addEventListener('DOMContentLoaded', doRefreshVideoListForCompress);
+    }
+}
+
+function doRefreshVideoListForCompress() {
     fetch('/list_upload_videos')
     .then(response => response.json())
     .then(data => {
+        console.log('获取到上传视频列表 (压缩页面):', data); // 调试信息
         const selectElement = document.getElementById('existingVideoSelect');
         // 检查元素是否存在
         if (!selectElement) {
             console.error('Cannot find element with id "existingVideoSelect"');
             return;
         }
+        console.log('选择元素 (压缩页面):', selectElement); // 调试信息
         // 保留默认选项
         const defaultOption = selectElement.options[0];
         selectElement.innerHTML = '';
@@ -124,15 +135,17 @@ function refreshVideoListForCompress() {
             selectElement.appendChild(defaultOption);
         }
         // 添加视频文件选项
-        data.files.forEach(file => {
-            const option = document.createElement('option');
-            option.value = file.path;
-            option.textContent = `${file.name} (${file.size})`;
-            selectElement.appendChild(option);
-        });
+        if (data.files) {
+            data.files.forEach(file => {
+                const option = document.createElement('option');
+                option.value = file.path;
+                option.textContent = `${file.name} (${file.size})`;
+                selectElement.appendChild(option);
+            });
+        }
     })
     .catch(error => {
-        console.error('Error:', error);
+        console.error('刷新视频列表时出错 (压缩页面):', error);
     });
 }
 

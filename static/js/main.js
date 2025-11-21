@@ -137,6 +137,7 @@ export {
     exportRecordToExcel,
     syncToClipTable,
     startCutting,
+    updateCutOutputFilesList,
     updateUploadedVideosList,
     initDragAndDrop,
     updateVideoOrder,

@@ -44,11 +44,11 @@
                     
                     <div class="form-group">
                         <label>或从已上传文件中选择</label>
-                        <div style="display: flex; gap: 10px; align-items: center;">
-                            <select id="existingVideoSelectForCutting" style="flex: 1;">
+                        <div class="file-selection-container">
+                            <select id="existingVideoSelectForCutting" class="file-select">
                                 <option value="">请选择已上传的视频文件</option>
                             </select>
-                            <button id="refreshVideoListForCuttingBtn" style="white-space: nowrap;">刷新列表</button>
+                            <button id="refreshVideoListForCuttingBtn" class="refresh-btn">刷新列表</button>
                         </div>
                     </div>
                     
@@ -176,11 +176,11 @@
                     
                     <div class="form-group">
                         <label>或从已上传文件中选择</label>
-                        <div style="display: flex; gap: 10px; align-items: center;">
-                            <select id="existingVideoSelectForPlayer" style="flex: 1;">
+                        <div class="file-selection-container">
+                            <select id="existingVideoSelectForPlayer" class="file-select">
                                 <option value="">请选择已上传的视频文件</option>
                             </select>
-                            <button id="refreshVideoListForPlayerBtn" style="white-space: nowrap;">刷新列表</button>
+                            <button id="refreshVideoListForPlayerBtn" class="refresh-btn">刷新列表</button>
                         </div>
                     </div>
                     
@@ -281,13 +281,13 @@
                     
                     <div class="form-group">
                         <label>或从已上传文件中选择</label>
-                        <div style="display: flex; gap: 10px; align-items: center;">
-                            <select id="existingVideoSelectForConcat" multiple style="flex: 1; height: 100px;">
+                        <div class="file-selection-container">
+                            <select id="existingVideoSelectForConcat" class="file-select" multiple style="height: 100px;">
                                 <option value="">请选择已上传的视频文件</option>
                             </select>
-                            <div style="display: flex; flex-direction: column; gap: 5px;">
-                                <button id="refreshVideoListForConcatBtn" style="white-space: nowrap;">刷新列表</button>
-                                <button id="addSelectedVideosBtn" style="white-space: nowrap;">添加选中</button>
+                            <div class="button-group">
+                                <button id="refreshVideoListForConcatBtn" class="refresh-btn">刷新列表</button>
+                                <button id="addSelectedVideosBtn" class="add-btn">添加选中</button>
                             </div>
                         </div>
                     </div>
@@ -360,11 +360,11 @@
                     
                     <div class="form-group">
                         <label>或从已上传文件中选择</label>
-                        <div style="display: flex; gap: 10px; align-items: center;">
-                            <select id="existingVideoSelect" style="flex: 1;">
+                        <div class="file-selection-container">
+                            <select id="existingVideoSelect" class="file-select">
                                 <option value="">请选择已上传的视频文件</option>
                             </select>
-                            <button id="refreshVideoListBtn" style="white-space: nowrap;">刷新列表</button>
+                            <button id="refreshVideoListForCompressBtn" class="refresh-btn">刷新列表</button>
                         </div>
                     </div>
                     

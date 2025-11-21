@@ -146,24 +146,41 @@ function initPlayerTab() {
  * 刷新视频列表（视频打标页面）
  */
 function refreshVideoListForPlayer() {
+    // 确保DOM已加载完成
+    if (document.readyState !== 'loading') {
+        doRefreshVideoListForPlayer();
+    } else {
+        document.addEventListener('DOMContentLoaded', doRefreshVideoListForPlayer);
+    }
+}
+
+function doRefreshVideoListForPlayer() {
     fetch('/list_upload_videos')
     .then(response => response.json())
     .then(data => {
+        console.log('获取到上传视频列表 (播放器页面):', data); // 调试信息
         const selectElement = document.getElementById('existingVideoSelectForPlayer');
+        console.log('选择元素 (播放器页面):', selectElement); // 调试信息
+        if (!selectElement) {
+            console.error('找不到 existingVideoSelectForPlayer 元素');
+            return;
+        }
         // 保留默认选项
         const defaultOption = selectElement.options[0];
         selectElement.innerHTML = '';
         selectElement.appendChild(defaultOption);
         // 添加视频文件选项
-        data.files.forEach(file => {
-            const option = document.createElement('option');
-            option.value = file.path;
-            option.textContent = `${file.name} (${file.size})`;
-            selectElement.appendChild(option);
-        });
+        if (data.files) {
+            data.files.forEach(file => {
+                const option = document.createElement('option');
+                option.value = file.path;
+                option.textContent = `${file.name} (${file.size})`;
+                selectElement.appendChild(option);
+            });
+        }
     })
     .catch(error => {
-        console.error('Error:', error);
+        console.error('刷新视频列表时出错 (播放器页面):', error);
     });
 }
 

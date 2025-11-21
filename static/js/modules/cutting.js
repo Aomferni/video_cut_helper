@@ -70,6 +70,9 @@ function startCutting() {
     const cutResultElement = document.getElementById('cutResult');
     cutResultElement.textContent = '正在处理视频剪辑...';
     
+    // 获取仅导出音频选项
+    const audioOnly = document.getElementById('audioOnly').checked;
+    
     // 发送剪辑请求到服务器
     fetch('/cut_videos', {
         method: 'POST',
@@ -80,7 +83,8 @@ function startCutting() {
             video_path: uploadedVideoPath,
             excel_data: tableData,
             concat_after_cut: concatAfterCut,  // 添加合并选项
-            concat_file_name: concatFileName   // 添加自定义合并文件名
+            concat_file_name: concatFileName,   // 添加自定义合并文件名
+            audio_only: audioOnly  // 添加仅导出音频选项
         })
     })
     .then(response => response.json())
@@ -89,8 +93,18 @@ function startCutting() {
             cutResultElement.textContent = '剪辑失败: ' + data.error;
         } else {
             cutResultElement.textContent = data.result;
-            // 更新输出文件列表
-            // updateOutputFilesList(); // 这个函数在concat.js中定义，不应该在这里调用
+            // 更新剪辑输出文件列表
+            // 从main.js导入updateCutOutputFilesList函数
+            import('../main.js').then(module => {
+                if (typeof module.updateCutOutputFilesList === 'function') {
+                    console.log('正在更新剪辑输出文件列表...');
+                    module.updateCutOutputFilesList();
+                } else {
+                    console.error('updateCutOutputFilesList函数不可用');
+                }
+            }).catch(error => {
+                console.error('导入main.js失败:', error);
+            });
         }
     })
     .catch(error => {
@@ -430,24 +444,41 @@ function initCuttingTab() {
  * 刷新视频列表（视频剪辑页面）
  */
 function refreshVideoListForCutting() {
+    // 确保DOM已加载完成
+    if (document.readyState !== 'loading') {
+        doRefreshVideoListForCutting();
+    } else {
+        document.addEventListener('DOMContentLoaded', doRefreshVideoListForCutting);
+    }
+}
+
+function doRefreshVideoListForCutting() {
     fetch('/list_upload_videos')
     .then(response => response.json())
     .then(data => {
+        console.log('获取到上传视频列表:', data); // 调试信息
         const selectElement = document.getElementById('existingVideoSelectForCutting');
+        console.log('选择元素:', selectElement); // 调试信息
+        if (!selectElement) {
+            console.error('找不到 existingVideoSelectForCutting 元素');
+            return;
+        }
         // 保留默认选项
         const defaultOption = selectElement.options[0];
         selectElement.innerHTML = '';
         selectElement.appendChild(defaultOption);
         // 添加视频文件选项
-        data.files.forEach(file => {
-            const option = document.createElement('option');
-            option.value = file.path;
-            option.textContent = `${file.name} (${file.size})`;
-            selectElement.appendChild(option);
-        });
+        if (data.files) {
+            data.files.forEach(file => {
+                const option = document.createElement('option');
+                option.value = file.path;
+                option.textContent = `${file.name} (${file.size})`;
+                selectElement.appendChild(option);
+            });
+        }
     })
     .catch(error => {
-        console.error('Error:', error);
+        console.error('刷新视频列表时出错:', error);
     });
 }
 
@@ -876,6 +907,31 @@ function updateRecordSelectAllCheckbox() {
     }
 }
 
+/**
+ * 更新剪辑输出文件列表
+ */
+function updateCutOutputFilesList() {
+    fetch('/list_output_files')
+    .then(response => response.json())
+    .then(data => {
+        const listElement = document.getElementById('cutOutputFilesList');
+        if (listElement) {
+            listElement.innerHTML = '';
+            data.files.forEach(file => {
+                const listItem = document.createElement('li');
+                listItem.innerHTML = `
+                    <span>${file.name} (${file.size})</span>
+                    <a href="/download/${file.name}" target="_blank">下载</a>
+                `;
+                listElement.appendChild(listItem);
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+
 // 导出函数供其他模块使用
 export {
     initCuttingTab,
@@ -893,5 +949,6 @@ export {
     hmsToSeconds,
     exportToExcel,
     updateRecordSelectAllCheckbox,
-    startCutting
+    startCutting,
+    updateCutOutputFilesList
 };

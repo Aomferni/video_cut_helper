@@ -436,81 +436,81 @@ def cut_videos_from_dataframe(input_video_path, df, concat_after_cut=False, audi
                     print(f"添加已存在的文件到合并列表: {output_path}")
                 continue
 
-                message = f"正在裁剪：{title} ({start}s - {end}s)"
+            message = f"正在裁剪：{title} ({start}s - {end}s)"
+            result_messages.append(message)
+            print(message)
+            # 实时更新前端显示（虽然当前架构不支持真正的流式响应，但至少记录处理过程）
+            
+            try:
+                if audio_only:
+                    # 仅导出音频
+                    cmd = [
+                        FFMPEG_PATH,
+                        '-i', input_video_path,
+                        '-ss', str(start),
+                        '-to', str(end),
+                        '-vn',  # 禁用视频
+                        '-acodec', 'libmp3lame',  # 使用MP3编码
+                        '-ar', '44100',  # 音频采样率
+                        '-ac', '2',  # 双声道
+                        '-b:a', '192k',  # 音频比特率
+                        '-y',
+                        output_path
+                    ]
+                    
+                    result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+                    
+                    if result.returncode == 0:
+                        message = f"✅ 成功导出音频：{title} ({start}s - {end}s)"
+                    else:
+                        raise Exception(f"FFmpeg音频导出错误: {result.stderr}")
+                else:
+                    # 使用FFmpeg零重编码精准切片，保证音画同步
+                    if smart_cut(input_video_path, output_path, start, end):
+                        message = f"✅ 成功裁剪：{title} ({start}s - {end}s)"
+                    else:
+                        # 如果FFmpeg方法失败，回退到MoviePy方法
+                        message = f"⚠️ FFmpeg方法失败，使用MoviePy方法"
+                        with VideoFileClip(input_video_path) as video:
+                            # 直接使用subclip方法
+                            clip = video.subclip(start, end)
+                            
+                            # 优化编码参数，确保音画同步
+                            clip.write_videofile(
+                                output_path,
+                                verbose=False,  # 减少输出信息
+                                logger=None,    # 禁用logger
+                                codec="libx264",
+                                audio_codec="aac",
+                                temp_audiofile="temp-audio.m4a",
+                                remove_temp=True,
+                                fps=video.fps,
+                                preset="medium",
+                                threads=4,
+                                ffmpeg_params=[
+                                    "-crf", "23",  # 稍高的CRF值，平衡质量和文件大小
+                                    "-movflags", "+faststart",  # 网络优化
+                                    "-avoid_negative_ts", "make_zero",  # 确保时间戳正确
+                                    "-fflags", "+genpts",  # 重新生成PTS
+                                    "-async", "1",  # 音频同步
+                                    "-vsync", "1"   # 视频同步
+                                ]
+                            )
+                            
+                            # 重要：显式关闭剪辑释放资源
+                            clip.close()
+                        message = f"✅ 成功裁剪（MoviePy）：{title} ({start}s - {end}s)"
                 result_messages.append(message)
                 print(message)
-                # 实时更新前端显示（虽然当前架构不支持真正的流式响应，但至少记录处理过程）
                 
-                try:
-                    if audio_only:
-                        # 仅导出音频
-                        cmd = [
-                            FFMPEG_PATH,
-                            '-i', input_video_path,
-                            '-ss', str(start),
-                            '-to', str(end),
-                            '-vn',  # 禁用视频
-                            '-acodec', 'libmp3lame',  # 使用MP3编码
-                            '-ar', '44100',  # 音频采样率
-                            '-ac', '2',  # 双声道
-                            '-b:a', '192k',  # 音频比特率
-                            '-y',
-                            output_path
-                        ]
-                        
-                        result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
-                        
-                        if result.returncode == 0:
-                            message = f"✅ 成功导出音频：{title} ({start}s - {end}s)"
-                        else:
-                            raise Exception(f"FFmpeg音频导出错误: {result.stderr}")
-                    else:
-                        # 使用FFmpeg零重编码精准切片，保证音画同步
-                        if smart_cut(input_video_path, output_path, start, end):
-                            message = f"✅ 成功裁剪：{title} ({start}s - {end}s)"
-                        else:
-                            # 如果FFmpeg方法失败，回退到MoviePy方法
-                            message = f"⚠️ FFmpeg方法失败，使用MoviePy方法"
-                            with VideoFileClip(input_video_path) as video:
-                                # 直接使用subclip方法
-                                clip = video.subclip(start, end)
-                                
-                                # 优化编码参数，确保音画同步
-                                clip.write_videofile(
-                                    output_path,
-                                    verbose=False,  # 减少输出信息
-                                    logger=None,    # 禁用logger
-                                    codec="libx264",
-                                    audio_codec="aac",
-                                    temp_audiofile="temp-audio.m4a",
-                                    remove_temp=True,
-                                    fps=video.fps,
-                                    preset="medium",
-                                    threads=4,
-                                    ffmpeg_params=[
-                                        "-crf", "23",  # 稍高的CRF值，平衡质量和文件大小
-                                        "-movflags", "+faststart",  # 网络优化
-                                        "-avoid_negative_ts", "make_zero",  # 确保时间戳正确
-                                        "-fflags", "+genpts",  # 重新生成PTS
-                                        "-async", "1",  # 音频同步
-                                        "-vsync", "1"   # 视频同步
-                                    ]
-                                )
-                                
-                                # 重要：显式关闭剪辑释放资源
-                                clip.close()
-                            message = f"✅ 成功裁剪（MoviePy）：{title} ({start}s - {end}s)"
-                    result_messages.append(message)
-                    print(message)
-                    
-                    # 如果需要合并，将剪辑后的文件添加到列表
-                    if concat_after_cut:
-                        cut_files.append(output_path)
-                        print(f"添加新剪辑的文件到合并列表: {output_path}")
-                except Exception as e:
-                    message = f"❌ 裁剪失败：{title} - {str(e)}"
-                    result_messages.append(message)
-                    print(message)
+                # 如果需要合并，将剪辑后的文件添加到列表
+                if concat_after_cut:
+                    cut_files.append(output_path)
+                    print(f"添加新剪辑的文件到合并列表: {output_path}")
+            except Exception as e:
+                message = f"❌ 裁剪失败：{title} - {str(e)}"
+                result_messages.append(message)
+                print(message)
         
         success_message = "✅ 所有片段裁剪完成！"
         result_messages.append(success_message)

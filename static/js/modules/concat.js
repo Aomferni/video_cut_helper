@@ -98,49 +98,74 @@ function initConcatTab() {
  * 刷新视频列表（视频拼接页面）
  */
 function refreshVideoListForConcat() {
+    // 确保DOM已加载完成
+    if (document.readyState !== 'loading') {
+        doRefreshVideoListForConcat();
+    } else {
+        document.addEventListener('DOMContentLoaded', doRefreshVideoListForConcat);
+    }
+}
+
+function doRefreshVideoListForConcat() {
     // 获取上传的视频文件
     fetch('/list_upload_videos')
     .then(response => response.json())
     .then(data => {
+        console.log('获取到上传视频列表 (拼接页面):', data); // 调试信息
         const selectElement = document.getElementById('existingVideoSelectForConcat');
+        console.log('选择元素 (拼接页面):', selectElement); // 调试信息
+        if (!selectElement) {
+            console.error('找不到 existingVideoSelectForConcat 元素');
+            return;
+        }
         // 保留默认选项
         const defaultOption = selectElement.options[0];
         selectElement.innerHTML = '';
         selectElement.appendChild(defaultOption);
         // 添加视频文件选项
-        data.files.forEach(file => {
-            const option = document.createElement('option');
-            option.value = file.path;
-            option.textContent = `${file.name} (${file.size})`;
-            selectElement.appendChild(option);
-        });
+        if (data.files) {
+            data.files.forEach(file => {
+                const option = document.createElement('option');
+                option.value = file.path;
+                option.textContent = `${file.name} (${file.size})`;
+                selectElement.appendChild(option);
+            });
+        }
         
         // 同时更新设置封面的视频选择下拉框
         updateVideoSelectForCover(data.files);
     })
     .catch(error => {
-        console.error('Error:', error);
+        console.error('刷新视频列表时出错 (拼接页面):', error);
     });
     
     // 获取输出文件并添加到设置封面的视频选择下拉框
     fetch('/list_output_files')
     .then(response => response.json())
     .then(data => {
+        console.log('获取到输出文件列表 (拼接页面):', data); // 调试信息
         const selectElement = document.getElementById('selectVideoForCover');
+        console.log('选择元素 (封面选择):', selectElement); // 调试信息
+        if (!selectElement) {
+            console.error('找不到 selectVideoForCover 元素');
+            return;
+        }
         // 保留默认选项
         const defaultOption = selectElement.options[0];
         selectElement.innerHTML = '';
         selectElement.appendChild(defaultOption);
         // 添加输出文件选项
-        data.files.forEach(file => {
-            const option = document.createElement('option');
-            option.value = file.path;
-            option.textContent = `${file.name} (${file.size})`;
-            selectElement.appendChild(option);
-        });
+        if (data.files) {
+            data.files.forEach(file => {
+                const option = document.createElement('option');
+                option.value = file.path;
+                option.textContent = `${file.name} (${file.size})`;
+                selectElement.appendChild(option);
+            });
+        }
     })
     .catch(error => {
-        console.error('Error:', error);
+        console.error('刷新输出文件列表时出错 (拼接页面):', error);
     });
 }
 
