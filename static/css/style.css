@@ -475,6 +475,29 @@ table {
     table-layout: fixed;
 }
 
+/* 视频打标页面的记录表格样式 */
+.record-table-container {
+    max-height: 300px; /* 与视频信息详情框高度保持一致 */
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-top: 10px;
+}
+
+#recordTable {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    margin: 0;
+}
+
+#recordTable thead {
+    position: sticky;
+    top: 0;
+    background-color: #f2f2f2;
+    z-index: 10;
+}
+
 th, td {
     border: 1px solid #ddd;
     padding: 12px;

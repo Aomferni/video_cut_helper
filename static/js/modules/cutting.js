@@ -94,17 +94,7 @@ function startCutting() {
         } else {
             cutResultElement.textContent = data.result;
             // 更新剪辑输出文件列表
-            // 从main.js导入updateCutOutputFilesList函数
-            import('../main.js').then(module => {
-                if (typeof module.updateCutOutputFilesList === 'function') {
-                    console.log('正在更新剪辑输出文件列表...');
-                    module.updateCutOutputFilesList();
-                } else {
-                    console.error('updateCutOutputFilesList函数不可用');
-                }
-            }).catch(error => {
-                console.error('导入main.js失败:', error);
-            });
+            updateCutOutputFilesList();
         }
     })
     .catch(error => {
@@ -444,12 +434,8 @@ function initCuttingTab() {
  * 刷新视频列表（视频剪辑页面）
  */
 function refreshVideoListForCutting() {
-    // 确保DOM已加载完成
-    if (document.readyState !== 'loading') {
-        doRefreshVideoListForCutting();
-    } else {
-        document.addEventListener('DOMContentLoaded', doRefreshVideoListForCutting);
-    }
+    // 直接调用刷新函数
+    doRefreshVideoListForCutting();
 }
 
 function doRefreshVideoListForCutting() {
@@ -472,7 +458,11 @@ function doRefreshVideoListForCutting() {
             data.files.forEach(file => {
                 const option = document.createElement('option');
                 option.value = file.path;
-                option.textContent = `${file.name} (${file.size})`;
+                try {
+                    option.textContent = `${decodeURIComponent(escape(file.name))} (${file.size})`;
+                } catch (e) {
+                    option.textContent = `${file.name} (${file.size})`;
+                }
                 selectElement.appendChild(option);
             });
         }
@@ -534,6 +524,8 @@ function initCuttingPlayer() {
     videoPlayer.addEventListener('timeupdate', function() {
         const currentTime = videoPlayer.currentTime;
         currentTimeDisplay.textContent = secondsToHMS(currentTime);
+        // 同步当前时间到定位输入框
+        document.getElementById('cuttingSeekTime').value = secondsToHMS(currentTime);
 
         // 更新进度条
         if (videoPlayer.duration) {
@@ -610,6 +602,30 @@ function initCuttingPlayer() {
             videoPlayer.pause();
         }
     });
+    
+    // 定位按钮
+    document.getElementById('cuttingSeekBtn').addEventListener('click', function() {
+        const timeStr = document.getElementById('cuttingSeekTime').value;
+        const seconds = hmsToSeconds(timeStr);
+        videoPlayer.currentTime = seconds;
+    });
+    
+    // 为定位输入框添加回车键事件
+    document.getElementById('cuttingSeekTime').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            const timeStr = this.value;
+            const seconds = hmsToSeconds(timeStr);
+            videoPlayer.currentTime = seconds;
+        }
+    });
+    
+    // 为定位输入框添加焦点事件，获得焦点时暂停播放
+    document.getElementById('cuttingSeekTime').addEventListener('focus', function() {
+        if (!videoPlayer.paused) {
+            videoPlayer.pause();
+        }
+    });
+
 }
 
 /**

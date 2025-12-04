@@ -98,12 +98,8 @@ function initConcatTab() {
  * 刷新视频列表（视频拼接页面）
  */
 function refreshVideoListForConcat() {
-    // 确保DOM已加载完成
-    if (document.readyState !== 'loading') {
-        doRefreshVideoListForConcat();
-    } else {
-        document.addEventListener('DOMContentLoaded', doRefreshVideoListForConcat);
-    }
+    // 直接调用刷新函数
+    doRefreshVideoListForConcat();
 }
 
 function doRefreshVideoListForConcat() {
@@ -127,7 +123,15 @@ function doRefreshVideoListForConcat() {
             data.files.forEach(file => {
                 const option = document.createElement('option');
                 option.value = file.path;
-                option.textContent = `${file.name} (${file.size})`;
+                try {
+                    option.textContent = `${decodeURIComponent(escape(file.name))} (${file.size})`;
+                } catch (e) {
+                    try {
+                        option.textContent = `${decodeURIComponent(escape(file.name))} (${file.size})`;
+                    } catch (e) {
+                        option.textContent = `${file.name} (${file.size})`;
+                    }
+                }
                 selectElement.appendChild(option);
             });
         }
@@ -159,7 +163,11 @@ function doRefreshVideoListForConcat() {
             data.files.forEach(file => {
                 const option = document.createElement('option');
                 option.value = file.path;
-                option.textContent = `${file.name} (${file.size})`;
+                try {
+                    option.textContent = `${decodeURIComponent(escape(file.name))} (${file.size})`;
+                } catch (e) {
+                    option.textContent = `${file.name} (${file.size})`;
+                }
                 selectElement.appendChild(option);
             });
         }
@@ -183,7 +191,11 @@ function updateVideoSelectForCover(uploadFiles) {
     uploadFiles.forEach(file => {
         const option = document.createElement('option');
         option.value = file.path;
-        option.textContent = `${file.name} (${file.size})`;
+        try {
+            option.textContent = `${decodeURIComponent(escape(file.name))} (${file.size})`;
+        } catch (e) {
+            option.textContent = `${file.name} (${file.size})`;
+        }
         selectElement.appendChild(option);
     });
     
@@ -195,7 +207,11 @@ function updateVideoSelectForCover(uploadFiles) {
         data.files.forEach(file => {
             const option = document.createElement('option');
             option.value = file.path;
-            option.textContent = `${file.name} (${file.size})`;
+            try {
+                option.textContent = `${decodeURIComponent(escape(file.name))} (${file.size})`;
+            } catch (e) {
+                option.textContent = `${file.name} (${file.size})`;
+            }
             selectElement.appendChild(option);
         });
     })

@@ -18,7 +18,8 @@ import {
     hmsToSeconds,
     exportToExcel,
     updateRecordSelectAllCheckbox,
-    startCutting
+    startCutting,
+    updateCutOutputFilesList
 } from './modules/cutting.js';
 
 import { 
@@ -54,6 +55,9 @@ import {
     updateCompressOutputFilesList
 } from './modules/compress.js';
 
+// 导入PDF模块
+import { initPdfTab } from './modules/pdf.js';
+
 // 全局变量
 let activeCell = null;
 let videoElement = null;
@@ -78,6 +82,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 初始化视频压缩功能
     initCompressTab();
+    
+    // 初始化PDF功能
+    initPdfTab();
     
     // 定期更新输出文件列表
     setInterval(function() {

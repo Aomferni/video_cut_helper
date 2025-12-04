@@ -54,6 +54,8 @@ function initPlayerTab() {
             const percent = (videoPlayer.currentTime / videoPlayer.duration) * 100;
             progressBarFill.style.width = percent + '%';
             currentTimeDisplay.textContent = secondsToHMS(videoPlayer.currentTime);
+            // 同步当前时间到定位输入框
+            document.getElementById('seekTime').value = secondsToHMS(videoPlayer.currentTime);
         }
     });
     // 视频加载元数据
@@ -124,6 +126,20 @@ function initPlayerTab() {
         const seconds = hmsToSeconds(timeStr);
         videoPlayer.currentTime = seconds;
     });
+    // 为定位输入框添加回车键事件
+    document.getElementById('seekTime').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            const timeStr = this.value;
+            const seconds = hmsToSeconds(timeStr);
+            videoPlayer.currentTime = seconds;
+        }
+    });
+    // 为定位输入框添加焦点事件，获得焦点时暂停播放
+    document.getElementById('seekTime').addEventListener('focus', function() {
+        if (!videoPlayer.paused) {
+            videoPlayer.pause();
+        }
+    });
     // 为时间字段添加点击事件
     document.getElementById('startTimeField').addEventListener('click', function() {
         setActiveCell(this);
@@ -146,12 +162,8 @@ function initPlayerTab() {
  * 刷新视频列表（视频打标页面）
  */
 function refreshVideoListForPlayer() {
-    // 确保DOM已加载完成
-    if (document.readyState !== 'loading') {
-        doRefreshVideoListForPlayer();
-    } else {
-        document.addEventListener('DOMContentLoaded', doRefreshVideoListForPlayer);
-    }
+    // 直接调用刷新函数
+    doRefreshVideoListForPlayer();
 }
 
 function doRefreshVideoListForPlayer() {
@@ -174,7 +186,11 @@ function doRefreshVideoListForPlayer() {
             data.files.forEach(file => {
                 const option = document.createElement('option');
                 option.value = file.path;
-                option.textContent = `${file.name} (${file.size})`;
+                try {
+                    option.textContent = `${decodeURIComponent(escape(file.name))} (${file.size})`;
+                } catch (e) {
+                    option.textContent = `${file.name} (${file.size})`;
+                }
                 selectElement.appendChild(option);
             });
         }

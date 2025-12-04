@@ -9,6 +9,11 @@ import subprocess
 import json
 import uuid
 from io import BytesIO
+from werkzeug.utils import secure_filename
+
+# 添加PDF处理相关的导入
+from pathlib import Path
+from pdf2image import convert_from_path
 
 # 尝试导入imageio_ffmpeg以备FFmpeg路径问题
 try:
@@ -22,12 +27,17 @@ app = Flask(__name__)
 # 配置文件路径
 UPLOAD_FOLDER = 'static/uploads'
 OUTPUT_FOLDER = 'static/output'
+# 添加PDF输出目录
+PDF_OUTPUT_FOLDER = 'static/output/pdf_images'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['OUTPUT_FOLDER'] = OUTPUT_FOLDER
+app.config['PDF_OUTPUT_FOLDER'] = PDF_OUTPUT_FOLDER
 
 # 确保目录存在
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+# 确保PDF输出目录存在
+os.makedirs(PDF_OUTPUT_FOLDER, exist_ok=True)
 
 def time_to_seconds(t):
     """将时间字符串转换为秒数"""
@@ -798,7 +808,7 @@ def list_upload_videos():
                     file_size = format_file_size(os.path.getsize(filepath))
                     files.append({
                         'name': filename,
-                        'path': filepath,
+                        'path': filepath.replace('\\', '/'),
                         'size': file_size
                     })
         return jsonify({'files': files})
@@ -933,6 +943,81 @@ def set_video_cover_route():
     except Exception as e:
         return jsonify({'error': f'处理过程中出现错误: {str(e)}'})
 
+
+@app.route('/upload_pdf', methods=['POST'])
+def upload_pdf():
+    """上传PDF文件"""
+    if 'pdf' not in request.files:
+        return jsonify({'error': '没有PDF文件'})
+    
+    file = request.files['pdf']
+    if file.filename == '':
+        return jsonify({'error': '没有选择文件'})
+    
+    if file:
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+        return jsonify({'success': 'PDF文件上传成功', 'filepath': filepath, 'filename': filename})
+    return jsonify({'error': '未知错误'})
+
+@app.route('/convert_pdf_to_images', methods=['POST'])
+def convert_pdf_to_images():
+    """将PDF转换为图片"""
+    try:
+        data = request.get_json()
+        pdf_path = data.get('pdf_path')
+        dpi = int(data.get('dpi', 150))
+        fmt = data.get('format', 'jpg')
+        
+        if not pdf_path or not os.path.exists(pdf_path):
+            return jsonify({'error': 'PDF文件不存在'})
+        
+        # 创建输出目录
+        pdf_name = os.path.splitext(os.path.basename(pdf_path))[0]
+        output_dir = os.path.join(app.config['PDF_OUTPUT_FOLDER'], pdf_name)
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # 转换PDF为图片
+        pages = convert_from_path(pdf_path, dpi=dpi)
+        
+        # 保存图片
+        image_paths = []
+        for idx, page in enumerate(pages, 1):
+            img_name = f"{pdf_name}_page_{idx:04d}.{fmt.lower()}"
+            img_path = os.path.join(output_dir, img_name)
+            page.save(img_path, format=fmt.upper())
+            # 保存相对路径用于前端显示
+            relative_path = os.path.relpath(img_path, 'static')
+            image_paths.append(relative_path)
+        
+        return jsonify({
+            'success': f'转换完成！共 {len(pages)} 页',
+            'image_paths': image_paths,
+            'output_dir': os.path.relpath(output_dir, 'static')
+        })
+    except Exception as e:
+        return jsonify({'error': f'转换失败: {str(e)}'})
+
+@app.route('/list_pdf_files')
+def list_pdf_files():
+    """列出所有上传的PDF文件"""
+    try:
+        files = []
+        upload_dir = app.config['UPLOAD_FOLDER']
+        if os.path.exists(upload_dir):
+            for filename in os.listdir(upload_dir):
+                if filename.lower().endswith('.pdf'):
+                    filepath = os.path.join(upload_dir, filename)
+                    file_size = format_file_size(os.path.getsize(filepath))
+                    files.append({
+                        'name': filename,
+                        'path': filepath.replace('\\', '/'),
+                        'size': file_size
+                    })
+        return jsonify({'files': files})
+    except Exception as e:
+        return jsonify({'error': str(e)})
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5001)

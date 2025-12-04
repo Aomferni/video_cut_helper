@@ -21,7 +21,8 @@
             <button class="tab-button" data-tab="player">视频打标</button>
             <button class="tab-button" data-tab="concat">视频拼接</button>
             <button class="tab-button" data-tab="compress">视频压缩</button>
-            
+            <!-- 添加PDF转图片标签页按钮 -->
+            <button class="tab-button" data-tab="pdf">PDF转图片</button>
         </div>
         
         <!-- 视频剪辑标签页 -->
@@ -150,6 +151,10 @@
                             <button id="exportExcelBtn" class="table-data-action-btn">导出Excel文件</button>
                             
                             <button id="playActiveTimeBtn" class="table-special-action-btn">跳转播放</button>
+                            
+                            <h4></h4>
+                            <input type="text" id="cuttingSeekTime" placeholder="00:00:00" value="00:00:00" style="flex: 1;">
+                            <button id="cuttingSeekBtn" style="background-color: #2196F3; white-space: nowrap;">定位到指定时间</button>
                         </div>
                     </div>
                     <label>处理结果</label>
@@ -240,28 +245,30 @@
 
                         </div>
                     </div>
-                    <table id="recordTable">
-                        <thead>
-                            <tr>
-                                <th><input type="checkbox" id="selectRecordAllCheckbox"></th>
-                                <th>开始时间</th>
-                                <th>结束时间</th>
-                                <th>剪辑标题</th>
-                                <th>时长(分钟)</th>
-                                <th>操作</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><input type="checkbox" class="record-row-checkbox"></td>
-                                <td id="startTimeField" class="editable" contenteditable="true">00:00:00</td>
-                                <td id="endTimeField" class="editable" contenteditable="true">00:00:00</td>
-                                <td class="editable" contenteditable="true"></td>
-                                <td class="duration-cell">0</td>
-                                <td><button class="delete-record-row-btn">删除</button></td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <div class="record-table-container">
+                        <table id="recordTable">
+                            <thead>
+                                <tr>
+                                    <th><input type="checkbox" id="selectRecordAllCheckbox"></th>
+                                    <th>开始时间</th>
+                                    <th>结束时间</th>
+                                    <th>剪辑标题</th>
+                                    <th>时长(分钟)</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><input type="checkbox" class="record-row-checkbox"></td>
+                                    <td id="startTimeField" class="editable" contenteditable="true">00:00:00</td>
+                                    <td id="endTimeField" class="editable" contenteditable="true">00:00:00</td>
+                                    <td class="editable" contenteditable="true"></td>
+                                    <td class="duration-cell">0</td>
+                                    <td><button class="delete-record-row-btn">删除</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                     
                 </div>
             </div>
@@ -418,6 +425,8 @@
                             <div id="compressHoverTimeDisplay" style="position: absolute; top: -25px; background: rgba(0,0,0,0.8); color: white; padding: 2px 6px; border-radius: 3px; font-size: 12px; display: none;"></div>
                         </div>
                         <span id="compressCurrentTime">00:00:00</span> / <span id="compressDuration">00:00:00</span>
+                        <input type="text" id="compressSeekTime" placeholder="00:00:00" value="00:00:00" style="margin-left: 10px; width: 80px;">
+                        <button id="compressSeekBtn" style="background-color: #2196F3; white-space: nowrap;">定位</button>
                     </div>
                     
                     <label>压缩结果</label>
@@ -426,6 +435,68 @@
                     <div class="output-files">
                         <h3>输出文件</h3>
                         <ul id="compressOutputFilesList"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- PDF转图片标签页 -->
+        <div id="pdf" class="tab-content">
+            <div class="row">
+                <div class="column">
+                    <div class="form-group">
+                        <label for="pdfFile">上传PDF文件</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="file" id="pdfFile" accept=".pdf" style="flex: 1;">
+                            <button id="uploadPdfBtn" style="white-space: nowrap;">上传PDF</button>
+                        </div>
+                        <!-- 添加上传进度提示 -->
+                        <div id="pdfUploadProgressContainer" style="display: none; margin-top: 10px;">
+                            <div>上传进度:</div>
+                            <progress id="pdfUploadProgress" value="0" max="100" style="width: 100%;"></progress>
+                            <div id="pdfUploadProgressText" style="text-align: center; font-size: 12px;">0%</div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>或从已上传文件中选择</label>
+                        <div class="file-selection-container">
+                            <select id="existingPdfSelect" class="file-select">
+                                <option value="">请选择已上传的PDF文件</option>
+                            </select>
+                            <button id="refreshPdfListBtn" class="refresh-btn">刷新列表</button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="pdfDpi">分辨率(DPI)</label>
+                        <input type="number" id="pdfDpi" value="150" min="50" max="600" style="width: 100%;">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="pdfFormat">输出格式</label>
+                        <select id="pdfFormat" style="width: 100%;">
+                            <option value="jpg">JPEG</option>
+                            <option value="png">PNG</option>
+                        </select>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button id="convertPdfBtn" style="padding: 15px 30px; font-size: 18px; background-color: #FF9800; box-shadow: 0 4px 8px rgba(255, 152, 0, 0.3);">
+                            <span style="font-weight: bold;">📄</span> 开始转换
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="column">
+                    <label>转换结果</label>
+                    <div id="pdfResult" class="result-box">请上传PDF文件，然后点击"开始转换"</div>
+                    
+                    <div class="output-files">
+                        <h3>输出图片</h3>
+                        <div id="pdfOutputImages" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;">
+                            <!-- 转换后的图片将在这里显示 -->
+                        </div>
                     </div>
                 </div>
             </div>

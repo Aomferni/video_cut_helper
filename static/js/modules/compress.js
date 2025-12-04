@@ -108,12 +108,8 @@ function initCompressTab() {
  * 刷新视频列表（视频压缩页面）
  */
 function refreshVideoListForCompress() {
-    // 确保DOM已加载完成
-    if (document.readyState !== 'loading') {
-        doRefreshVideoListForCompress();
-    } else {
-        document.addEventListener('DOMContentLoaded', doRefreshVideoListForCompress);
-    }
+    // 直接调用刷新函数
+    doRefreshVideoListForCompress();
 }
 
 function doRefreshVideoListForCompress() {
@@ -139,7 +135,11 @@ function doRefreshVideoListForCompress() {
             data.files.forEach(file => {
                 const option = document.createElement('option');
                 option.value = file.path;
-                option.textContent = `${file.name} (${file.size})`;
+                try {
+                    option.textContent = `${decodeURIComponent(escape(file.name))} (${file.size})`;
+                } catch (e) {
+                    option.textContent = `${file.name} (${file.size})`;
+                }
                 selectElement.appendChild(option);
             });
         }
@@ -163,6 +163,8 @@ function initCompressPlayer() {
     videoPlayer.addEventListener('timeupdate', function() {
         const currentTime = videoPlayer.currentTime;
         currentTimeDisplay.textContent = secondsToHMS(currentTime);
+        // 同步当前时间到定位输入框
+        document.getElementById('compressSeekTime').value = secondsToHMS(currentTime);
 
         // 更新进度条
         if (videoPlayer.duration) {
@@ -239,6 +241,30 @@ function initCompressPlayer() {
             videoPlayer.pause();
         }
     });
+    
+    // 定位按钮
+    document.getElementById('compressSeekBtn').addEventListener('click', function() {
+        const timeStr = document.getElementById('compressSeekTime').value;
+        const seconds = hmsToSeconds(timeStr);
+        videoPlayer.currentTime = seconds;
+    });
+    
+    // 为定位输入框添加回车键事件
+    document.getElementById('compressSeekTime').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            const timeStr = this.value;
+            const seconds = hmsToSeconds(timeStr);
+            videoPlayer.currentTime = seconds;
+        }
+    });
+    
+    // 为定位输入框添加焦点事件，获得焦点时暂停播放
+    document.getElementById('compressSeekTime').addEventListener('focus', function() {
+        if (!videoPlayer.paused) {
+            videoPlayer.pause();
+        }
+    });
+
 }
 
 /**
