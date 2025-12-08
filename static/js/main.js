@@ -58,6 +58,9 @@ import {
 // 导入PDF模块
 import { initPdfTab } from './modules/pdf.js';
 
+// 导入图像批处理模块
+import { initBatchProcessTab } from './modules/batch_process.js';
+
 // 全局变量
 let activeCell = null;
 let videoElement = null;
@@ -86,6 +89,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // 初始化PDF功能
     initPdfTab();
     
+    // 初始化图像批处理功能
+    initBatchProcessTab();
+    
     // 定期更新输出文件列表
     setInterval(function() {
         updateOutputFilesList();
@@ -108,50 +114,3 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
-
-// 导出全局变量和函数供其他模块使用
-export {
-    // 全局变量
-    activeCell,
-    videoElement,
-    uploadedVideoPath,
-    uploadedExcelData,
-    uploadedConcatVideos,
-    uploadedCompressVideoPath,
-    
-    // 全局函数
-    setActiveCell,
-    playVideoFromPath,
-    playUploadedVideo,
-    calculateAllDurations,
-    updateSelectAllCheckbox,
-    updateClipTable,
-    updateTable,
-    calculateDuration,
-    secondsToHMS,
-    hmsToSeconds,
-    exportToExcel,
-    updateRecordSelectAllCheckbox,
-    refreshVideoListForPlayer,
-    showLocalVideoInfo,
-    showUploadedVideoInfo,
-    initRecordTimeTable,
-    recordCurrentTime,
-    playActiveTime,
-    calculateAllRecordDurations,
-    updateRecordTable,
-    importRecordExcel,
-    exportRecordToExcel,
-    syncToClipTable,
-    startCutting,
-    updateCutOutputFilesList,
-    updateUploadedVideosList,
-    initDragAndDrop,
-    updateVideoOrder,
-    concatVideos,
-    updateOutputFilesList,
-    refreshVideoListForCompress,
-    initCompressPlayer,
-    compressVideo,
-    updateCompressOutputFilesList
-};

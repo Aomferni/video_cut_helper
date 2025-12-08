@@ -23,6 +23,8 @@
             <button class="tab-button" data-tab="compress">视频压缩</button>
             <!-- 添加PDF转图片标签页按钮 -->
             <button class="tab-button" data-tab="pdf">PDF转图片</button>
+            <!-- 添加图像批处理标签页按钮 -->
+            <button class="tab-button" data-tab="batch_process">图像批处理</button>
         </div>
         
         <!-- 视频剪辑标签页 -->
@@ -502,7 +504,66 @@
             </div>
         </div>
         
-
+        <!-- 图像批处理标签页 -->
+        <div id="batch_process" class="tab-content">
+            <div class="row">
+                <div class="column">
+                    <div class="form-group">
+                        <label for="imageFiles">选择图像文件</label>
+                        <input type="file" id="imageFiles" accept="image/*" multiple>
+                        <button id="uploadImagesBtn">上传图像</button>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>或从已上传文件中选择</label>
+                        <div class="file-selection-container">
+                            <select id="existingImageSelect" class="file-select" multiple size="8">
+                                <option value="">请先上传图像文件或刷新列表</option>
+                            </select>
+                            <div class="button-group">
+                                <button id="refreshImageListBtn" class="refresh-btn">刷新列表</button>
+                                <button id="selectAllImagesBtn" class="add-btn">全选</button>
+                                <button id="deselectAllImagesBtn" class="add-btn">取消全选</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="column">
+                    <div class="form-group">
+                        <label for="targetWidth">目标宽度 (像素)</label>
+                        <input type="number" id="targetWidth" value="3508" min="1">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="targetHeight">目标高度 (像素)</label>
+                        <input type="number" id="targetHeight" value="2480" min="1">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="targetSize">目标文件大小 (KB)</label>
+                        <input type="number" id="targetSize" value="1000" min="1">
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button id="processImagesBtn" style="padding: 15px 30px; font-size: 18px; background-color: #FF5722;">
+                            <span style="font-weight: bold;">▶</span> 开始处理
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>处理结果</label>
+                <div id="processResult" class="result-box">请上传图像并设置处理参数，然后点击"开始处理"</div>
+            </div>
+            
+            <div class="output-files">
+                <h3>输出文件</h3>
+                <ul id="outputFilesList"></ul>
+            </div>
+        </div>
+        
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图像批处理工具</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>图像批处理工具</h1>
+        <p class="description">批量调整图像尺寸并压缩文件大小</p>
+        
+        <div class="tabs">
+            <button class="tab-button" onclick="window.location.href='/'">返回主界面</button>
+        </div>
+        
+        <div class="row">
+            <div class="column">
+                <div class="form-group">
+                    <label for="imageFiles">选择图像文件</label>
+                    <input type="file" id="imageFiles" accept="image/*" multiple>
+                    <button id="uploadImagesBtn">上传图像</button>
+                </div>
+                
+                <div class="form-group">
+                    <label>或从已上传文件中选择</label>
+                    <div class="file-selection-container">
+                        <select id="existingImageSelect" class="file-select" multiple size="8">
+                            <option value="">请先上传图像文件或刷新列表</option>
+                        </select>
+                        <div class="button-group">
+                            <button id="refreshImageListBtn" class="refresh-btn">刷新列表</button>
+                            <button id="selectAllImagesBtn" class="add-btn">全选</button>
+                            <button id="deselectAllImagesBtn" class="add-btn">取消全选</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="column">
+                <div class="form-group">
+                    <label for="targetWidth">目标宽度 (像素)</label>
+                    <input type="number" id="targetWidth" value="3508" min="1">
+                </div>
+                
+                <div class="form-group">
+                    <label for="targetHeight">目标高度 (像素)</label>
+                    <input type="number" id="targetHeight" value="2480" min="1">
+                </div>
+                
+                <div class="form-group">
+                    <label for="targetSize">目标文件大小 (KB)</label>
+                    <input type="number" id="targetSize" value="1000" min="1">
+                </div>
+                
+                <div style="text-align: center; margin-top: 20px;">
+                    <button id="processImagesBtn" style="padding: 15px 30px; font-size: 18px; background-color: #FF5722;">
+                        <span style="font-weight: bold;">▶</span> 开始处理
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>处理结果</label>
+            <div id="processResult" class="result-box">请上传图像并设置处理参数，然后点击"开始处理"</div>
+        </div>
+        
+        <div class="output-files">
+            <h3>输出文件</h3>
+            <ul id="outputFilesList"></ul>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/modules/batch_process.js') }}"></script>
+    <script>
+        // 确保在页面加载完成后初始化
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initBatchProcessTab);
+        } else {
+            // DOM已经加载完成
+            initBatchProcessTab();
+        }
+    </script>
+</body>
+</html>

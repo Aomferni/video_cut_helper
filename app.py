@@ -15,6 +15,9 @@ from werkzeug.utils import secure_filename
 from pathlib import Path
 from pdf2image import convert_from_path
 
+# 添加图像处理相关的导入
+from PIL import Image, ImageOps
+
 # 尝试导入imageio_ffmpeg以备FFmpeg路径问题
 try:
     import imageio_ffmpeg
@@ -1008,6 +1011,171 @@ def list_pdf_files():
         if os.path.exists(upload_dir):
             for filename in os.listdir(upload_dir):
                 if filename.lower().endswith('.pdf'):
+                    filepath = os.path.join(upload_dir, filename)
+                    file_size = format_file_size(os.path.getsize(filepath))
+                    files.append({
+                        'name': filename,
+                        'path': filepath.replace('\\', '/'),
+                        'size': file_size
+                    })
+        return jsonify({'files': files})
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
+
+@app.route('/batch_process')
+def batch_process():
+    return render_template('batch_process.html')
+
+
+@app.route('/upload_images', methods=['POST'])
+def upload_images():
+    """上传图像文件"""
+    if 'images' not in request.files:
+        return jsonify({'error': '没有图像文件'})
+    
+    files = request.files.getlist('images')
+    uploaded_files = []
+    
+    for file in files:
+        if file.filename != '':
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
+            file_size = format_file_size(os.path.getsize(filepath))
+            uploaded_files.append({
+                'name': filename,
+                'path': filepath.replace('\\', '/'),
+                'size': file_size
+            })
+    
+    return jsonify({
+        'success': f'成功上传 {len(uploaded_files)} 个图像文件',
+        'files': uploaded_files
+    })
+
+
+def exact_resize(im: Image.Image, tw: int, th: int) -> Image.Image:
+    """
+    先等比缩放到“能放进目标框”，再中心裁剪成目标尺寸，
+    保证输出一定是 tw×th，且不会放大原图。
+    """
+    # 1. 等比缩放到“长边对齐”
+    ratio = max(tw / im.width, th / im.height)
+    if ratio > 1:                       # 原图比目标小就不放大
+        ratio = 1
+    new_w = int(round(im.width * ratio))
+    new_h = int(round(im.height * ratio))
+    im = im.resize((new_w, new_h), Image.LANCZOS)
+
+    # 2. 中心裁剪到目标尺寸
+    im = ImageOps.fit(im, (tw, th), centering=(0.5, 0.5))
+    return im
+
+
+def save_with_quality(img: Image.Image, save_path: str, target_b: int) -> None:
+    """JPEG 用 quality 二分，PNG 先优化再转 JPEG（若仍超）"""
+    # 确保目录存在
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    
+    fmt = img.format or os.path.splitext(save_path)[1].lower().strip('.') or 'jpeg'
+    if fmt.lower() in ('jpg', 'jpeg'):
+        low, high = 10, 95
+        while low <= high:
+            mid = (low + high) // 2
+            img.save(save_path, format='JPEG', quality=mid, optimize=True)
+            if os.path.getsize(save_path) <= target_b:
+                low = mid + 1
+            else:
+                high = mid - 1
+        img.save(save_path, format='JPEG', quality=high, optimize=True)
+    else:
+        img.save(save_path, optimize=True)
+        if os.path.getsize(save_path) > target_b:
+            rgb = img.convert('RGB')
+            rgb.save(save_path, format='JPEG', quality=85, optimize=True)
+
+
+def process_image(file_path: str, output_dir: str, target_w: int, target_h: int, target_kb: int):
+    """处理单个图像文件"""
+    try:
+        with Image.open(file_path) as im:
+            # 处理图像
+            im = exact_resize(im, target_w, target_h)
+            
+            # 构建输出路径
+            filename = os.path.basename(file_path)
+            name, ext = os.path.splitext(filename)
+            output_path = os.path.join(output_dir, f"{name}_resized{ext}")
+            
+            # 保存图像
+            save_with_quality(im, output_path, target_kb * 1024)
+            
+            # 获取处理后的文件大小
+            processed_size = os.path.getsize(output_path)
+            processed_size_kb = processed_size / 1024
+            
+            return {
+                'success': True,
+                'input': file_path,
+                'output': output_path,
+                'size': f"{processed_size_kb:.1f} KB"
+            }
+    except Exception as e:
+        return {
+            'success': False,
+            'input': file_path,
+            'error': str(e)
+        }
+
+
+@app.route('/process_images', methods=['POST'])
+def process_images():
+    """批量处理图像"""
+    try:
+        data = request.get_json()
+        image_paths = data.get('image_paths', [])
+        target_w = int(data.get('target_w', 3508))
+        target_h = int(data.get('target_h', 2480))
+        target_kb = int(data.get('target_kb', 1000))
+        
+        if not image_paths:
+            return jsonify({'error': '没有选择图像文件'})
+        
+        # 创建输出目录
+        output_dir = app.config['OUTPUT_FOLDER']
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # 处理每个图像
+        results = []
+        for path in image_paths:
+            if os.path.exists(path):
+                result = process_image(path, output_dir, target_w, target_h, target_kb)
+                results.append(result)
+            else:
+                results.append({
+                    'success': False,
+                    'input': path,
+                    'error': '文件不存在'
+                })
+        
+        return jsonify({'results': results})
+    except Exception as e:
+        return jsonify({'error': f'处理过程中出现错误: {str(e)}'})
+
+
+@app.route('/list_uploaded_images')
+def list_uploaded_images():
+    """列出所有上传的图像文件"""
+    try:
+        files = []
+        upload_dir = app.config['UPLOAD_FOLDER']
+        if os.path.exists(upload_dir):
+            # 支持的图像格式
+            supported_exts = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif', '.gif'}
+            for filename in os.listdir(upload_dir):
+                _, ext = os.path.splitext(filename.lower())
+                if ext in supported_exts:
                     filepath = os.path.join(upload_dir, filename)
                     file_size = format_file_size(os.path.getsize(filepath))
                     files.append({
