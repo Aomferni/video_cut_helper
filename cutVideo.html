@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>视频裁剪框选可视化</title>
+<style>
+  body{font-family:Arial,Helvetica,sans-serif;margin:20px;background:#f7f7f7}
+  #canvas{border:1px solid #999;display:block;margin:10px 0;background:#000}
+  #info{background:#fff;padding:8px 12px;border:1px solid #ccc;display:inline-block}
+  button{padding:6px 12px;margin:4px 2px}
+  #cmd{width:100%;box-sizing:border-box;margin-top:8px}
+</style>
+</head>
+<body>
+
+<h2>1. 选择本地视频</h2>
+<input type="file" id="fileInput" accept="video/*">
+
+<h2>2. 用鼠标拖动选择裁剪区域</h2>
+<canvas id="canvas"></canvas>
+
+<div id="info">
+  框选参数：<span id="params">x=0 y=0 w=0 h=0</span>
+</div>
+
+<h2>3. 一键复制 FFmpeg 命令</h2>
+<textarea id="cmd" rows="3" readonly></textarea>
+<br>
+<button onclick="copyCmd()">复制命令</button>
+
+<script>
+const fileInput = document.getElementById('fileInput');
+const canvas      = document.getElementById('canvas');
+const ctx         = canvas.getContext('2d');
+const paramsSpan  = document.getElementById('params');
+const cmdArea     = document.getElementById('cmd');
+
+let imgWidth = 0, imgHeight = 0;
+let startX=0, startY=0, endX=0, endY=0;
+let dragging = false;
+let videoElement = document.createElement('video');
+
+fileInput.addEventListener('change', handleFile);
+
+function handleFile(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const url = URL.createObjectURL(file);
+  videoElement.preload = 'metadata';
+  videoElement.src = url;
+  videoElement.onloadedmetadata = () => {
+    // 取第一帧
+    videoElement.currentTime = 0;
+    videoElement.onseeked = () => {
+      drawFirstFrame();
+      URL.revokeObjectURL(url);
+    };
+  };
+}
+
+function drawFirstFrame(){
+  imgWidth  = videoElement.videoWidth;
+  imgHeight = videoElement.videoHeight;
+  canvas.width  = imgWidth;
+  canvas.height = imgHeight;
+  ctx.drawImage(videoElement, 0, 0, imgWidth, imgHeight);
+}
+
+// 鼠标事件
+canvas.onmousedown = e => {
+  const rect = canvas.getBoundingClientRect();
+  startX = e.clientX - rect.left;
+  startY = e.clientY - rect.top;
+  dragging = true;
+};
+canvas.onmousemove = e => {
+  if(!dragging) return;
+  const rect = canvas.getBoundingClientRect();
+  endX = e.clientX - rect.left;
+  endY = e.clientY - rect.top;
+  redraw();
+};
+canvas.onmouseup = e => {
+  dragging = false;
+  updateCmd();
+};
+
+function redraw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.drawImage(videoElement,0,0,imgWidth,imgHeight);
+  const [x,y,w,h] = getRect();
+  ctx.strokeStyle='lime';
+  ctx.lineWidth=2;
+  ctx.strokeRect(x,y,w,h);
+  paramsSpan.textContent = `x=${x} y=${y} w=${w} h=${h}`;
+}
+
+function getRect(){
+  const x = Math.min(startX,endX);
+  const y = Math.min(startY,endY);
+  const w = Math.abs(endX-startX);
+  const h = Math.abs(endY-startY);
+  return [Math.round(x),Math.round(y),Math.round(w),Math.round(h)];
+}
+
+function updateCmd(){
+  const [x,y,w,h] = getRect();
+  const inFile  = fileInput.files[0].name.replace(/"/g,'\\"');
+  const outFile = inFile.replace(/(\.\w+)?$/,'_crop$&');
+  cmdArea.value = `ffmpeg -i "${inFile}" -filter:v "crop=${w}:${h}:${x}:${y}" -c:a copy "${outFile}"`;
+}
+
+function copyCmd(){
+  cmdArea.select();
+  document.execCommand('copy');
+  alert('已复制到剪贴板');
+}
+</script>
+
+</body>
+</html>

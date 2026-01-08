@@ -852,3 +852,113 @@ tr:nth-child(even) {
         font-size: 16px;
     }
 }
+
+/* 框选裁剪 Canvas 样式 */
+.crop-canvas-container {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+}
+
+#cropCanvas {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    border: 2px solid #999;
+    background: #000;
+    cursor: crosshair;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+#cropCanvas:hover {
+    border-color: #4CAF50;
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+/* 裁剪参数显示 */
+#cropParams {
+    font-family: 'Courier New', monospace;
+    background: #e8f5e9;
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+#originalResolution {
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    color: #2196F3;
+}
+
+/* 裁剪按钮样式 */
+#applyCropBtn {
+    background-color: #FF9800 !important;
+    padding: 10px 20px;
+    font-weight: bold;
+    font-size: 15px;
+}
+
+#applyCropBtn:hover {
+    background-color: #F57C00 !important;
+    box-shadow: 0 4px 8px rgba(255, 152, 0, 0.4);
+}
+
+#resetCropBtn {
+    background-color: #757575 !important;
+    padding: 10px 20px;
+}
+
+#resetCropBtn:hover {
+    background-color: #616161 !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* 裁剪结果框 */
+#cropResult {
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+/* 视频裁剪页面的进度条样式 */
+#cropProgressContainer {
+    flex: 1;
+    height: 10px;
+    cursor: pointer;
+    position: relative;
+}
+
+#cropProgressBarBackground {
+    width: 100%;
+    height: 100%;
+    background-color: #ddd;
+    border-radius: 5px;
+    position: relative;
+}
+
+#cropProgressBarFill {
+    height: 100%;
+    background-color: #4CAF50;
+    border-radius: 5px;
+    width: 0%;
+    transition: width 0.1s;
+}
+
+#cropProgressBarBackground:hover #cropProgressBarFill {
+    background-color: #45a049;
+}
+
+/* 视频裁剪页面拖动时显示的时间帧样式 */
+#cropHoverTimeDisplay {
+    position: absolute;
+    top: -25px;
+    background: rgba(0,0,0,0.8);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 12px;
+    display: none;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 100;
+}

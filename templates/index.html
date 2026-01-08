@@ -19,6 +19,7 @@
         <div class="tabs">
             <button class="tab-button active" data-tab="cutting">视频剪辑</button>
             <button class="tab-button" data-tab="player">视频打标</button>
+            <button class="tab-button" data-tab="crop">视频裁剪</button>
             <button class="tab-button" data-tab="concat">视频拼接</button>
             <button class="tab-button" data-tab="compress">视频压缩</button>
             <!-- 添加PDF转图片标签页按钮 -->
@@ -272,6 +273,128 @@
                         </table>
                     </div>
                     
+                </div>
+            </div>
+        </div>
+        
+        <!-- 视频裁剪标签页 -->
+        <div id="crop" class="tab-content">
+            <div class="row">
+                <div class="column">
+                    <div class="form-group">
+                        <label for="cropVideoFile">上传视频文件</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="file" id="cropVideoFile" accept="video/*" style="flex: 1;">
+                            <button id="uploadCropVideoBtn" style="white-space: nowrap;">上传视频</button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>或从已上传文件中选择</label>
+                        <div class="file-selection-container">
+                            <select id="existingVideoSelectForCrop" class="file-select">
+                                <option value="">请选择已上传的视频文件</option>
+                            </select>
+                            <button id="refreshVideoListForCropBtn" class="refresh-btn">刷新列表</button>
+                        </div>
+                    </div>
+                    
+                    <!-- 视频播放器 -->
+                    <div class="video-container">
+                        <video id="cropVideoPlayer" controls></video>
+                    </div>
+                    
+                    <div class="controls">
+                        <button id="cropPlayPauseBtn">播放/暂停</button>
+                        <div class="progress-container" id="cropProgressContainer">
+                            <div id="cropProgressBarBackground">
+                                <div id="cropProgressBarFill"></div>
+                            </div>
+                            <div id="cropHoverTimeDisplay" style="position: absolute; top: -25px; background: rgba(0,0,0,0.8); color: white; padding: 2px 6px; border-radius: 3px; font-size: 12px; display: none;"></div>
+                        </div>
+                        <span id="cropCurrentTime">00:00:00</span> / <span id="cropDuration">00:00:00</span>
+                        <input type="text" id="cropSeekTime" placeholder="00:00:00" value="00:00:00" style="margin-left: 10px; width: 80px;">
+                        <button id="cropSeekBtn" style="background-color: #2196F3; white-space: nowrap;">定位</button>
+                        <button id="captureFrameBtn" style="background-color: #FF9800; white-space: nowrap;">📸 捕捉当前画面</button>
+                    </div>
+                    
+                    <!-- 裁剪时间段设置 -->
+                    <div class="section-title" style="margin-top: 20px;">⏱️ 裁剪时间段设置</div>
+                    <div style="background: #f0f8ff; padding: 15px; border-radius: 4px; margin-bottom: 15px;">
+                        <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                            <div style="flex: 1; min-width: 150px;">
+                                <label for="cropStartTime" style="display: block; margin-bottom: 5px; font-size: 14px;">开始时间:</label>
+                                <input type="text" id="cropStartTime" value="00:00:00" style="width: 100%; padding: 8px;">
+                            </div>
+                            <div style="flex: 1; min-width: 150px;">
+                                <label for="cropEndTime" style="display: block; margin-bottom: 5px; font-size: 14px;">结束时间:</label>
+                                <input type="text" id="cropEndTime" value="00:00:00" style="width: 100%; padding: 8px;">
+                            </div>
+                            <div style="display: flex; gap: 10px; align-items: flex-end;">
+                                <button id="setCurrentAsStartBtn" style="background-color: #4CAF50; padding: 8px 12px;">设为开始</button>
+                                <button id="setCurrentAsEndBtn" style="background-color: #2196F3; padding: 8px 12px;">设为结束</button>
+                            </div>
+                        </div>
+                        <p style="margin: 10px 0 0 0; color: #666; font-size: 13px;">💡 提示：可以拖动进度条找到想要的画面，然后点击"捕捉当前画面"在 Canvas 上显示</p>
+                    </div>
+                </div>
+                
+                <div class="column">
+                    <!-- Canvas 裁剪区域 -->
+                    <div class="section-title">📐 框选裁剪区域</div>
+                    <div style="background: #f9f9f9; padding: 15px; border-radius: 4px; margin-bottom: 15px;">
+                        <p style="margin: 0 0 10px 0; color: #666; font-size: 14px;">在画面上拖动鼠标框选需要裁剪的区域</p>
+                        <div class="crop-canvas-container" style="text-align: center; margin: 10px 0;">
+                            <canvas id="cropCanvas" style="border: 2px solid #999; background: #000; max-width: 100%; cursor: crosshair;"></canvas>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; flex-wrap: wrap; gap: 10px;">
+                            <div style="flex: 1; min-width: 200px;">
+                                <div style="font-size: 13px; color: #666;">原始尺寸: <span id="originalResolution" style="font-weight: bold; color: #2196F3;">-</span></div>
+                                <div style="font-size: 13px; color: #666; margin-top: 5px;">裁剪参数: <span id="cropParams" style="font-weight: bold; color: #4CAF50;">未选择</span></div>
+                            </div>
+                            <div style="display: flex; gap: 10px;">
+                                <button id="resetCropBtn" style="background-color: #757575; padding: 8px 16px;">重置区域</button>
+                            </div>
+                        </div>
+                        
+                        <!-- 手动输入裁剪参数 -->
+                        <div class="section-title" style="margin-top: 15px; font-size: 14px;">✏️ 手动调整裁剪参数</div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; margin-top: 10px;">
+                            <div>
+                                <label for="cropX" style="display: block; font-size: 12px; color: #666; margin-bottom: 3px;">X 坐标:</label>
+                                <input type="number" id="cropX" value="0" min="0" style="width: 100%; padding: 6px; font-size: 13px;">
+                            </div>
+                            <div>
+                                <label for="cropY" style="display: block; font-size: 12px; color: #666; margin-bottom: 3px;">Y 坐标:</label>
+                                <input type="number" id="cropY" value="0" min="0" style="width: 100%; padding: 6px; font-size: 13px;">
+                            </div>
+                            <div>
+                                <label for="cropWidth" style="display: block; font-size: 12px; color: #666; margin-bottom: 3px;">宽度:</label>
+                                <input type="number" id="cropWidth" value="0" min="0" style="width: 100%; padding: 6px; font-size: 13px;">
+                            </div>
+                            <div>
+                                <label for="cropHeight" style="display: block; font-size: 12px; color: #666; margin-bottom: 3px;">高度:</label>
+                                <input type="number" id="cropHeight" value="0" min="0" style="width: 100%; padding: 6px; font-size: 13px;">
+                            </div>
+                        </div>
+                        <p style="margin: 8px 0 0 0; color: #999; font-size: 12px;">💡 提示：可直接修改数值或拖动裁剪框边框/角点调整</p>
+                    </div>
+                    
+                    <!-- 应用裁剪按钮 -->
+                    <div style="text-align: center; margin: 20px 0;">
+                        <button id="applyCropBtn" style="padding: 15px 30px; font-size: 18px; background-color: #FF9800; box-shadow: 0 4px 8px rgba(255, 152, 0, 0.3); font-weight: bold;">
+                            <span style="font-weight: bold;">✂️</span> 应用裁剪
+                        </button>
+                        <p style="margin: 10px 0; color: #666; font-size: 13px;">裁剪将应用于设置的时间段（如果未设置则裁剪整个视频）</p>
+                    </div>
+                    
+                    <label>处理结果</label>
+                    <div id="cropResult" class="result-box">请上传视频并框选裁剪区域，然后点击"应用裁剪"</div>
+                    
+                    <div class="output-files">
+                        <h3>输出文件</h3>
+                        <ul id="cropOutputFilesList"></ul>
+                    </div>
                 </div>
             </div>
         </div>

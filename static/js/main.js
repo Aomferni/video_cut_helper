@@ -61,6 +61,9 @@ import { initPdfTab } from './modules/pdf.js';
 // 导入图像批处理模块
 import { initBatchProcessTab } from './modules/batch_process.js';
 
+// 导入框选裁剪模块
+import { initCropModule } from './modules/crop.js';
+
 // 全局变量
 let activeCell = null;
 let videoElement = null;
@@ -91,6 +94,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 初始化图像批处理功能
     initBatchProcessTab();
+    
+    // 初始化框选裁剪功能
+    initCropModule();
     
     // 定期更新输出文件列表
     setInterval(function() {

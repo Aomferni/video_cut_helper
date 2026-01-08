@@ -1187,5 +1187,140 @@ def list_uploaded_images():
     except Exception as e:
         return jsonify({'error': str(e)})
 
+@app.route('/crop_video', methods=['POST'])
+def crop_video_route():
+    """视频区域裁剪路由"""
+    try:
+        data = request.get_json()
+        video_path = data.get('video_path')
+        x = int(data.get('x', 0))
+        y = int(data.get('y', 0))
+        width = int(data.get('width', 0))
+        height = int(data.get('height', 0))
+        
+        if not video_path or not os.path.exists(video_path):
+            return jsonify({'error': '视频文件不存在'})
+        
+        if width <= 0 or height <= 0:
+            return jsonify({'error': '裁剪区域宽高必须大于0'})
+        
+        # 确保宽高是偶数（FFmpeg 要求）
+        if width % 2 != 0:
+            width -= 1
+        if height % 2 != 0:
+            height -= 1
+        
+        # 生成输出文件路径
+        filename = os.path.basename(video_path)
+        name, ext = os.path.splitext(filename)
+        output_filename = f"{name}_cropped{ext}"
+        output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
+        
+        # 使用 FFmpeg 裁剪视频
+        cmd = [
+            FFMPEG_PATH,
+            '-i', video_path,
+            '-filter:v', f'crop={width}:{height}:{x}:{y}',
+            '-c:a', 'copy',  # 音频直接复制
+            '-y',
+            output_path
+        ]
+        
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)  # 10分钟超时
+        
+        if result.returncode != 0:
+            raise Exception(f"FFmpeg裁剪错误: {result.stderr}")
+        
+        # 获取裁剪后的文件大小
+        cropped_size = os.path.getsize(output_path) / (1024 * 1024)  # MB
+        original_size = os.path.getsize(video_path) / (1024 * 1024)  # MB
+        
+        return jsonify({
+            'result': f'✅ 视频裁剪完成！\n'
+                     f'原始大小: {original_size:.1f}MB\n'
+                     f'裁剪后大小: {cropped_size:.1f}MB\n'
+                     f'裁剪区域: {width}x{height}\n'
+                     f'输出文件: {output_filename}',
+            'output_path': output_path,
+            'output_filename': output_filename
+        })
+    except subprocess.TimeoutExpired:
+        return jsonify({'error': '视频裁剪超时，请检查视频文件大小'})
+    except Exception as e:
+        return jsonify({'error': f'处理过程中出现错误: {str(e)}'})
+
+@app.route('/crop_video_with_time', methods=['POST'])
+def crop_video_with_time_route():
+    """视频区域裁剪带时间段路由"""
+    try:
+        data = request.get_json()
+        video_path = data.get('video_path')
+        x = int(data.get('x', 0))
+        y = int(data.get('y', 0))
+        width = int(data.get('width', 0))
+        height = int(data.get('height', 0))
+        start_time = float(data.get('start_time', 0))
+        end_time = float(data.get('end_time', 0))
+        
+        if not video_path or not os.path.exists(video_path):
+            return jsonify({'error': '视频文件不存在'})
+        
+        if width <= 0 or height <= 0:
+            return jsonify({'error': '裁剪区域宽高必须大于0'})
+        
+        # 确保宽高是偶数（FFmpeg 要求）
+        if width % 2 != 0:
+            width -= 1
+        if height % 2 != 0:
+            height -= 1
+        
+        # 生成输出文件路径
+        filename = os.path.basename(video_path)
+        name, ext = os.path.splitext(filename)
+        output_filename = f"{name}_cropped{ext}"
+        output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
+        
+        # 构建 FFmpeg 命令
+        cmd = [FFMPEG_PATH, '-i', video_path]
+        
+        # 如果设置了时间段
+        if end_time > start_time and end_time > 0:
+            cmd.extend(['-ss', str(start_time), '-to', str(end_time)])
+        
+        # 添加裁剪滤镜
+        cmd.extend([
+            '-filter:v', f'crop={width}:{height}:{x}:{y}',
+            '-c:a', 'copy',  # 音频直接复制
+            '-y',
+            output_path
+        ])
+        
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)  # 10分钟超时
+        
+        if result.returncode != 0:
+            raise Exception(f"FFmpeg裁剪错误: {result.stderr}")
+        
+        # 获取裁剪后的文件大小
+        cropped_size = os.path.getsize(output_path) / (1024 * 1024)  # MB
+        original_size = os.path.getsize(video_path) / (1024 * 1024)  # MB
+        
+        time_info = ''
+        if end_time > start_time and end_time > 0:
+            time_info = f'\n时间段: {seconds_to_time(start_time)} - {seconds_to_time(end_time)}'
+        
+        return jsonify({
+            'result': f'✅ 视频裁剪完成！\n'
+                     f'原始大小: {original_size:.1f}MB\n'
+                     f'裁剪后大小: {cropped_size:.1f}MB\n'
+                     f'裁剪区域: {width}x{height}{time_info}\n'
+                     f'输出文件: {output_filename}',
+            'output_path': output_path,
+            'output_filename': output_filename
+        })
+    except subprocess.TimeoutExpired:
+        return jsonify({'error': '视频裁剪超时，请检查视频文件大小'})
+    except Exception as e:
+        return jsonify({'error': f'处理过程中出现错误: {str(e)}'})
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5001)
