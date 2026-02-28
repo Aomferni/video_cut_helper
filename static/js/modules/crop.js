@@ -220,25 +220,106 @@ function refreshCropVideoList() {
         const selectElement = document.getElementById('existingVideoSelectForCrop');
         if (!selectElement) return;
         
-        const defaultOption = selectElement.options[0];
-        selectElement.innerHTML = '';
-        selectElement.appendChild(defaultOption);
+        // 保存完整文件列表
+        selectElement.allFiles = data.files || [];
         
-        if (data.files) {
-            data.files.forEach(file => {
-                const option = document.createElement('option');
-                option.value = file.path;
-                try {
-                    option.textContent = `${decodeURIComponent(escape(file.name))} (${file.size})`;
-                } catch (e) {
-                    option.textContent = `${file.name} (${file.size})`;
+        // 渲染文件列表
+        renderCropVideoList(selectElement, selectElement.allFiles);
+        
+        // 添加搜索功能
+        const searchInput = document.getElementById('videoSearchInputForCrop');
+        if (searchInput) {
+            const newSearchInput = searchInput.cloneNode(true);
+            searchInput.parentNode.replaceChild(newSearchInput, searchInput);
+            
+            newSearchInput.addEventListener('input', function(e) {
+                const keyword = e.target.value.toLowerCase().trim();
+                if (keyword === '') {
+                    renderCropVideoList(selectElement, selectElement.allFiles);
+                } else {
+                    const filteredFiles = selectElement.allFiles.filter(file => 
+                        file.name.toLowerCase().includes(keyword) || 
+                        file.folder.toLowerCase().includes(keyword)
+                    );
+                    renderCropVideoList(selectElement, filteredFiles);
                 }
-                selectElement.appendChild(option);
+            });
+            
+            newSearchInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (selectElement.options.length > 1) {
+                        selectElement.selectedIndex = 1;
+                        const visibleCount = Math.min(selectElement.options.length, 10);
+                        selectElement.size = visibleCount;
+                        selectElement.focus();
+                    }
+                }
+            });
+            
+            selectElement.addEventListener('blur', function() {
+                setTimeout(() => {
+                    selectElement.size = 0;
+                }, 100);
+            });
+            selectElement.addEventListener('change', function() {
+                setTimeout(() => {
+                    selectElement.size = 0;
+                }, 100);
             });
         }
     })
     .catch(error => {
         console.error('刷新视频列表时出错:', error);
+    });
+}
+
+function renderCropVideoList(selectElement, files) {
+    const defaultOption = selectElement.options[0];
+    selectElement.innerHTML = '';
+    selectElement.appendChild(defaultOption);
+    
+    if (!files || files.length === 0) {
+        const option = document.createElement('option');
+        option.disabled = true;
+        option.textContent = '没有找到匹配的文件';
+        selectElement.appendChild(option);
+        return;
+    }
+    
+    // 按文件夹分组显示
+    let currentFolder = '';
+    files.forEach(file => {
+        // 如果文件夹变化，添加分组标题
+        if (file.folder !== currentFolder) {
+            currentFolder = file.folder;
+            if (currentFolder !== '') {
+                const optgroup = document.createElement('optgroup');
+                const folderName = currentFolder.split('/').pop() || currentFolder;
+                optgroup.label = `📁 ${folderName}`;
+                selectElement.appendChild(optgroup);
+            }
+        }
+        
+        const option = document.createElement('option');
+        option.value = file.path;
+        try {
+            option.textContent = decodeURIComponent(escape(file.name));
+        } catch (e) {
+            option.textContent = file.name;
+        }
+        
+        // 添加到合适的位置
+        if (currentFolder !== '') {
+            const lastOptgroup = selectElement.lastChild;
+            if (lastOptgroup.tagName === 'OPTGROUP') {
+                lastOptgroup.appendChild(option);
+            } else {
+                selectElement.appendChild(option);
+            }
+        } else {
+            selectElement.appendChild(option);
+        }
     });
 }
 
@@ -308,8 +389,9 @@ function handleUploadCropVideo() {
  * 加载视频用于裁剪（从服务器路径）
  */
 function loadVideoForCrop(videoPath) {
-    const fileName = videoPath.split('/').pop();
-    const videoUrl = `/static/uploads/${encodeURIComponent(fileName)}`;
+    // videoPath已经是完整的web路径，直接使用
+    // 格式: /static/uploads/folder/file.mp4 (已URL编码)
+    const videoUrl = videoPath;
     
     cropVideoElement.preload = 'metadata';
     cropVideoElement.src = videoUrl;
@@ -575,6 +657,13 @@ function applyCropToVideo() {
     const startTime = startTimeInput ? hmsToSeconds(startTimeInput.value) : 0;
     const endTime = endTimeInput ? hmsToSeconds(endTimeInput.value) : 0;
     
+    // 将web路径转换为文件系统路径
+    let videoPath = currentCropVideoPath;
+    if (videoPath.startsWith('/static/')) {
+        videoPath = videoPath.substring(1); // 去掉开头的 '/'
+        videoPath = decodeURIComponent(videoPath); // URL解码
+    }
+    
     // 显示处理状态
     const resultBox = document.getElementById('cropResult');
     if (resultBox) {
@@ -588,7 +677,7 @@ function applyCropToVideo() {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            video_path: currentCropVideoPath,
+            video_path: videoPath,
             x: actualX,
             y: actualY,
             width: actualW,

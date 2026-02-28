@@ -116,31 +116,54 @@ function doRefreshVideoListForCompress() {
     fetch('/list_upload_videos')
     .then(response => response.json())
     .then(data => {
-        console.log('获取到上传视频列表 (压缩页面):', data); // 调试信息
+        console.log('获取到上传视频列表 (压缩页面):', data);
         const selectElement = document.getElementById('existingVideoSelect');
-        // 检查元素是否存在
         if (!selectElement) {
             console.error('Cannot find element with id "existingVideoSelect"');
             return;
         }
-        console.log('选择元素 (压缩页面):', selectElement); // 调试信息
+        
         // 保留默认选项
         const defaultOption = selectElement.options[0];
         selectElement.innerHTML = '';
         if (defaultOption) {
             selectElement.appendChild(defaultOption);
         }
-        // 添加视频文件选项
+        
+        // 按文件夹分组显示
         if (data.files) {
+            let currentFolder = '';
             data.files.forEach(file => {
+                // 如果文件夹变化，添加分组标题
+                if (file.folder !== currentFolder) {
+                    currentFolder = file.folder;
+                    if (currentFolder !== '') {
+                        const optgroup = document.createElement('optgroup');
+                        const folderName = currentFolder.split('/').pop() || currentFolder;
+                        optgroup.label = `📁 ${folderName}`;
+                        selectElement.appendChild(optgroup);
+                    }
+                }
+                
                 const option = document.createElement('option');
                 option.value = file.path;
                 try {
-                    option.textContent = `${decodeURIComponent(escape(file.name))} (${file.size})`;
+                    option.textContent = decodeURIComponent(escape(file.name));
                 } catch (e) {
-                    option.textContent = `${file.name} (${file.size})`;
+                    option.textContent = file.name;
                 }
-                selectElement.appendChild(option);
+                
+                // 添加到合适的位置
+                if (currentFolder !== '') {
+                    const lastOptgroup = selectElement.lastChild;
+                    if (lastOptgroup.tagName === 'OPTGROUP') {
+                        lastOptgroup.appendChild(option);
+                    } else {
+                        selectElement.appendChild(option);
+                    }
+                } else {
+                    selectElement.appendChild(option);
+                }
             });
         }
     })
@@ -280,9 +303,17 @@ function compressVideo() {
         return;
     }
     resultBox.textContent = "正在处理视频压缩...";
+    
+    // 将web路径转换为文件系统路径
+    let videoPath = uploadedCompressVideoPath;
+    if (videoPath.startsWith('/static/')) {
+        videoPath = videoPath.substring(1); // 去掉开头的 '/'
+        videoPath = decodeURIComponent(videoPath); // URL解码
+    }
+    
     // 准备要发送的数据
     const requestData = {
-        video_path: uploadedCompressVideoPath,
+        video_path: videoPath,
         preset: preset,
         speed_mode: speedMode
     };
@@ -335,11 +366,10 @@ function updateCompressOutputFilesList() {
 
 // 从路径播放视频（本地版本）
 function playVideoFromPathLocal(videoPath, targetPlayerId) {
-    // 获取文件名
-    const fileName = videoPath.split('/').pop();
-    // 构造视频文件的访问URL
-    // 注意：这需要服务器支持文件访问
-    const videoUrl = `/static/uploads/${fileName}`;
+    // videoPath已经是完整的web路径，直接使用
+    // 格式: /static/uploads/folder/file.mp4 (已URL编码)
+    const videoUrl = videoPath;
+    
     // 确定要播放视频的播放器
     let videoPlayer;
     if (targetPlayerId) {

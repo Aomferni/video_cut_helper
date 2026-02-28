@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, jsonify, send_file
 from typing import Any, Dict, Union, Tuple
 from flask.wrappers import Response
+from urllib.parse import quote
 import os
 import pandas as pd
 from moviepy.editor import VideoFileClip, concatenate_videoclips
@@ -381,18 +382,49 @@ def cut_videos_from_dataframe(input_video_path, df, concat_after_cut=False, audi
     try:
         if not os.path.exists(input_video_path):
             return f"❌ 错误：找不到视频文件 {input_video_path}"
-            
-        output_dir = app.config['OUTPUT_FOLDER']
+        
+        # 获取第一个剪辑标题作为文件夹名称
+        first_title = None
+        for index, row in df.iterrows():
+            end_time = row.get("结束时间", row.get("EndTime", ""))
+            start_time = row.get("开始时间", row.get("StartTime", "00:00:00"))
+            # 跳过无效行
+            if pd.isna(end_time) or (not end_time) or (str(end_time).strip() == ""):
+                continue
+            if pd.isna(start_time) or (not start_time) or (str(start_time).strip() == ""):
+                continue
+            title = str(row.get("剪辑标题", row.get("Title", "untitled"))).strip().replace("/", "-").replace("\\", "-")
+            if title and title != "untitled":
+                first_title = title
+                break
+        
+        # 如果没有找到有效标题，使用默认名称
+        if not first_title:
+            first_title = "剪辑输出"
+        
+        # 在output文件夹内创建新文件夹
+        base_output_dir = app.config['OUTPUT_FOLDER']
+        output_dir = os.path.join(base_output_dir, first_title)
         os.makedirs(output_dir, exist_ok=True)
         
         result_messages = []
+        result_messages.append(f"📁 创建输出文件夹：{first_title}")
         cut_files = []  # 保存剪辑后的文件路径，用于后续合并
         
         # 打印DataFrame内容，用于调试
         print(f"DataFrame内容: {df}")
         print(f"DataFrame行数: {len(df)}")
+        print(f"输出文件夹: {output_dir}")
+        
+        # 定义圈数字序号
+        circle_numbers = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩',
+                         '⑪', '⑫', '⑬', '⑭', '⑮', '⑯', '⑰', '⑱', '⑲', '⑳',
+                         '㉑', '㉒', '㉓', '㉔', '㉕', '㉖', '㉗', '㉘', '㉙', '㉚',
+                         '㉛', '㉜', '㉝', '㉞', '㉟', '㊱', '㊲', '㊳', '㊴', '㊵',
+                         '㊶', '㊷', '㊸', '㊹', '㊺', '㊻', '㊼', '㊽', '㊾', '㊿']
         
         # 遍历每一行裁剪
+        clip_number = 0  # 有效剪辑的计数器
         for index, row in df.iterrows():
             print(f"处理第{index+1}行数据: {row}")
             # 获取开始时间和结束时间
@@ -417,6 +449,15 @@ def cut_videos_from_dataframe(input_video_path, df, concat_after_cut=False, audi
                 continue
             
             title = str(row.get("剪辑标题", row.get("Title", "untitled"))).strip().replace("/", "-").replace("\\", "-")
+            
+            # 为标题添加序号
+            if clip_number < len(circle_numbers):
+                title = f"{circle_numbers[clip_number]}{title}"
+            else:
+                # 如果超过50个，使用数字格式
+                title = f"{clip_number + 1}.{title}"
+            
+            clip_number += 1  # 增加计数器
             print(f"标题: {title}")
             
             start = time_to_seconds(start_time)
@@ -800,20 +841,52 @@ def list_output_files():
 
 @app.route('/list_upload_videos')
 def list_upload_videos():
-    """列出上传的视频文件"""
+    """列出上传的视频文件（包含子文件夹）"""
     try:
         files = []
         upload_dir = app.config['UPLOAD_FOLDER']
         if os.path.exists(upload_dir):
-            for filename in os.listdir(upload_dir):
-                filepath = os.path.join(upload_dir, filename)
-                if os.path.isfile(filepath) and is_video_file(filename):
-                    file_size = format_file_size(os.path.getsize(filepath))
-                    files.append({
-                        'name': filename,
-                        'path': filepath.replace('\\', '/'),
-                        'size': file_size
-                    })
+            # 递归遍历所有子文件夹
+            for root, dirs, filenames in os.walk(upload_dir):
+                for filename in filenames:
+                    if is_video_file(filename):
+                        filepath = os.path.join(root, filename)
+                        file_size = format_file_size(os.path.getsize(filepath))
+                        
+                        # 计算相对路径用于显示
+                        relative_path = os.path.relpath(root, upload_dir)
+                        if relative_path == '.':
+                            # 根目录文件
+                            display_name = filename
+                            folder = ''
+                            # URL编码文件名，但保留/符号
+                            encoded_filename = quote(filename)
+                            web_path = f'/static/uploads/{encoded_filename}'
+                        else:
+                            # 子文件夹文件
+                            display_name = f"{relative_path}/{filename}"
+                            folder = relative_path
+                            # URL编码路径和文件名
+                            encoded_path = '/'.join([quote(part) for part in relative_path.split('/')])
+                            encoded_filename = quote(filename)
+                            web_path = f'/static/uploads/{encoded_path}/{encoded_filename}'
+                        
+                        files.append({
+                            'name': filename,
+                            'display_name': display_name,
+                            'folder': folder,
+                            'path': web_path,
+                            'size': file_size
+                        })
+                        
+                        # 调试：输出前3个文件的路径
+                        if len(files) <= 3:
+                            print(f"[DEBUG] File: {filename}")
+                            print(f"[DEBUG] Folder: {folder}")
+                            print(f"[DEBUG] Web path: {web_path}")
+        
+        # 按文件夹和文件名排序
+        files.sort(key=lambda x: (x['folder'], x['name']))
         return jsonify({'files': files})
     except Exception as e:
         return jsonify({'error': str(e)})

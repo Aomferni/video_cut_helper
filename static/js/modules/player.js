@@ -167,36 +167,119 @@ function refreshVideoListForPlayer() {
 }
 
 function doRefreshVideoListForPlayer() {
-    fetch('/list_upload_videos')
+    const timestamp = new Date().getTime();
+    fetch(`/list_upload_videos?t=${timestamp}`)
     .then(response => response.json())
     .then(data => {
-        console.log('获取到上传视频列表 (播放器页面):', data); // 调试信息
+        console.log('获取到上传视频列表 (播放器页面):', data);
         const selectElement = document.getElementById('existingVideoSelectForPlayer');
-        console.log('选择元素 (播放器页面):', selectElement); // 调试信息
         if (!selectElement) {
             console.error('找不到 existingVideoSelectForPlayer 元素');
             return;
         }
-        // 保留默认选项
-        const defaultOption = selectElement.options[0];
-        selectElement.innerHTML = '';
-        selectElement.appendChild(defaultOption);
-        // 添加视频文件选项
-        if (data.files) {
-            data.files.forEach(file => {
-                const option = document.createElement('option');
-                option.value = file.path;
-                try {
-                    option.textContent = `${decodeURIComponent(escape(file.name))} (${file.size})`;
-                } catch (e) {
-                    option.textContent = `${file.name} (${file.size})`;
+        
+        // 保存完整文件列表
+        selectElement.allFiles = data.files || [];
+        
+        // 渲染文件列表
+        renderVideoListForPlayer(selectElement, selectElement.allFiles);
+        
+        // 添加搜索功能
+        const searchInput = document.getElementById('videoSearchInputForPlayer');
+        if (searchInput) {
+            const newSearchInput = searchInput.cloneNode(true);
+            searchInput.parentNode.replaceChild(newSearchInput, searchInput);
+            
+            // 输入搜索
+            newSearchInput.addEventListener('input', function(e) {
+                const keyword = e.target.value.toLowerCase().trim();
+                if (keyword === '') {
+                    renderVideoListForPlayer(selectElement, selectElement.allFiles);
+                } else {
+                    const filteredFiles = selectElement.allFiles.filter(file => 
+                        file.name.toLowerCase().includes(keyword) || 
+                        file.folder.toLowerCase().includes(keyword)
+                    );
+                    renderVideoListForPlayer(selectElement, filteredFiles);
                 }
-                selectElement.appendChild(option);
+            });
+            
+            // 回车键展开下拉框
+            newSearchInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (selectElement.options.length > 1) {
+                        selectElement.selectedIndex = 1;
+                        const visibleCount = Math.min(selectElement.options.length, 10);
+                        selectElement.size = visibleCount;
+                        selectElement.focus();
+                    }
+                }
+            });
+            
+            selectElement.addEventListener('blur', function() {
+                setTimeout(() => {
+                    selectElement.size = 0;
+                }, 100);
+            });
+            selectElement.addEventListener('change', function() {
+                setTimeout(() => {
+                    selectElement.size = 0;
+                }, 100);
             });
         }
     })
     .catch(error => {
         console.error('刷新视频列表时出错 (播放器页面):', error);
+    });
+}
+
+function renderVideoListForPlayer(selectElement, files) {
+    const defaultOption = selectElement.options[0];
+    selectElement.innerHTML = '';
+    selectElement.appendChild(defaultOption);
+    
+    if (!files || files.length === 0) {
+        const option = document.createElement('option');
+        option.disabled = true;
+        option.textContent = '没有找到匹配的文件';
+        selectElement.appendChild(option);
+        return;
+    }
+    
+    // 按文件夹分组显示
+    let currentFolder = '';
+    files.forEach(file => {
+        // 如果文件夹变化，添加分组标题
+        if (file.folder !== currentFolder) {
+            currentFolder = file.folder;
+            if (currentFolder !== '') {
+                const optgroup = document.createElement('optgroup');
+                const folderName = currentFolder.split('/').pop() || currentFolder;
+                optgroup.label = `📁 ${folderName}`;
+                selectElement.appendChild(optgroup);
+            }
+        }
+        
+        const option = document.createElement('option');
+        option.value = file.path;
+        try {
+            option.textContent = decodeURIComponent(escape(file.name));
+        } catch (e) {
+            option.textContent = file.name;
+        }
+        
+        // 添加到合适的位置
+        if (currentFolder !== '') {
+            const lastOptgroup = selectElement.lastChild;
+            if (lastOptgroup.tagName === 'OPTGROUP') {
+                lastOptgroup.appendChild(option);
+            } else {
+                selectElement.appendChild(option);
+            }
+        } else {
+            selectElement.appendChild(option);
+        }
     });
 }
 
@@ -228,12 +311,22 @@ function showLocalVideoInfo(file) {
  * 显示已上传视频的信息
  */
 function showUploadedVideoInfo(videoPath) {
+    // 将web路径转换为文件系统路径
+    // videoPath格式: /static/uploads/folder/file.mp4
+    // 转换为: static/uploads/folder/file.mp4
+    let filePath = videoPath;
+    if (filePath.startsWith('/static/')) {
+        filePath = filePath.substring(1); // 去掉开头的 '/'
+    }
+    // URL解码
+    filePath = decodeURIComponent(filePath);
+    
     fetch('/get_video_info', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({video_path: videoPath})
+        body: JSON.stringify({video_path: filePath})
     })
     .then(response => response.json())
     .then(data => {
@@ -803,11 +896,10 @@ function setActiveCell(cell) {
 
 // 从路径播放视频（本地版本）
 function playVideoFromPathLocal(videoPath, targetPlayerId) {
-    // 获取文件名
-    const fileName = videoPath.split('/').pop();
-    // 构造视频文件的访问URL
-    // 注意：这需要服务器支持文件访问
-    const videoUrl = `/static/uploads/${fileName}`;
+    // videoPath已经是完整的web路径，直接使用
+    // 格式: /static/uploads/folder/file.mp4 (已URL编码)
+    const videoUrl = videoPath;
+    
     // 确定要播放视频的播放器
     let videoPlayer;
     if (targetPlayerId) {

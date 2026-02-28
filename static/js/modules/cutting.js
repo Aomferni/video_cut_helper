@@ -73,6 +73,13 @@ function startCutting() {
     // 获取仅导出音频选项
     const audioOnly = document.getElementById('audioOnly').checked;
     
+    // 将web路径转换为文件系统路径
+    let videoPath = uploadedVideoPath;
+    if (videoPath.startsWith('/static/')) {
+        videoPath = videoPath.substring(1); // 去掉开头的 '/'
+        videoPath = decodeURIComponent(videoPath); // URL解码
+    }
+    
     // 发送剪辑请求到服务器
     fetch('/cut_videos', {
         method: 'POST',
@@ -80,7 +87,7 @@ function startCutting() {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            video_path: uploadedVideoPath,
+            video_path: videoPath,
             excel_data: tableData,
             concat_after_cut: concatAfterCut,  // 添加合并选项
             concat_file_name: concatFileName,   // 添加自定义合并文件名
@@ -439,31 +446,75 @@ function refreshVideoListForCutting() {
 }
 
 function doRefreshVideoListForCutting() {
-    fetch('/list_upload_videos')
+    // 添加时间戳防止缓存
+    const timestamp = new Date().getTime();
+    fetch(`/list_upload_videos?t=${timestamp}`)
     .then(response => response.json())
     .then(data => {
-        console.log('获取到上传视频列表:', data); // 调试信息
+        console.log('获取到上传视频列表:', data);
         const selectElement = document.getElementById('existingVideoSelectForCutting');
-        console.log('选择元素:', selectElement); // 调试信息
         if (!selectElement) {
             console.error('找不到 existingVideoSelectForCutting 元素');
             return;
         }
-        // 保留默认选项
-        const defaultOption = selectElement.options[0];
-        selectElement.innerHTML = '';
-        selectElement.appendChild(defaultOption);
-        // 添加视频文件选项
-        if (data.files) {
-            data.files.forEach(file => {
-                const option = document.createElement('option');
-                option.value = file.path;
-                try {
-                    option.textContent = `${decodeURIComponent(escape(file.name))} (${file.size})`;
-                } catch (e) {
-                    option.textContent = `${file.name} (${file.size})`;
+        
+        // 保存完整文件列表到元素上，供搜索使用
+        selectElement.allFiles = data.files || [];
+        
+        // 渲染文件列表
+        renderVideoList(selectElement, selectElement.allFiles);
+        
+        // 添加搜索功能
+        const searchInput = document.getElementById('videoSearchInputForCutting');
+        if (searchInput) {
+            // 移除旧的监听器（如果有）
+            const newSearchInput = searchInput.cloneNode(true);
+            searchInput.parentNode.replaceChild(newSearchInput, searchInput);
+            
+            // 输入搜索
+            newSearchInput.addEventListener('input', function(e) {
+                const keyword = e.target.value.toLowerCase().trim();
+                if (keyword === '') {
+                    // 显示全部
+                    renderVideoList(selectElement, selectElement.allFiles);
+                } else {
+                    // 过滤文件
+                    const filteredFiles = selectElement.allFiles.filter(file => 
+                        file.name.toLowerCase().includes(keyword) || 
+                        file.folder.toLowerCase().includes(keyword)
+                    );
+                    renderVideoList(selectElement, filteredFiles);
                 }
-                selectElement.appendChild(option);
+            });
+            
+            // 回车键展开下拉框
+            newSearchInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    // 如果有过滤结果，展开下拉框并高亮第一个选项
+                    if (selectElement.options.length > 1) {
+                        // 选中第一个非默认选项
+                        selectElement.selectedIndex = 1;
+                        // 设置size让下拉框展开显示（最多显示10个选项）
+                        const visibleCount = Math.min(selectElement.options.length, 10);
+                        selectElement.size = visibleCount;
+                        // 聚焦到下拉框，这样可以用方向键选择
+                        selectElement.focus();
+                    }
+                }
+            });
+            
+            // 当下拉框失去焦点后，恢复为普通下拉框样式
+            selectElement.addEventListener('blur', function() {
+                setTimeout(() => {
+                    selectElement.size = 0;
+                }, 100);
+            });
+            // 选择后延迟恢复，让change事件先触发
+            selectElement.addEventListener('change', function() {
+                setTimeout(() => {
+                    selectElement.size = 0;
+                }, 100);
             });
         }
     })
@@ -473,14 +524,68 @@ function doRefreshVideoListForCutting() {
 }
 
 /**
+ * 渲染视频列表
+ */
+function renderVideoList(selectElement, files) {
+    // 保留默认选项
+    const defaultOption = selectElement.options[0];
+    selectElement.innerHTML = '';
+    selectElement.appendChild(defaultOption);
+    
+    if (!files || files.length === 0) {
+        const option = document.createElement('option');
+        option.disabled = true;
+        option.textContent = '没有找到匹配的文件';
+        selectElement.appendChild(option);
+        return;
+    }
+    
+    // 按文件夹分组
+    let currentFolder = '';
+    files.forEach(file => {
+        // 如果文件夹变化，添加分组标题
+        if (file.folder !== currentFolder) {
+            currentFolder = file.folder;
+            if (currentFolder !== '') {
+                const optgroup = document.createElement('optgroup');
+                // 只显示文件夹名称的最后一部分
+                const folderName = currentFolder.split('/').pop() || currentFolder;
+                optgroup.label = `📁 ${folderName}`;
+                selectElement.appendChild(optgroup);
+            }
+        }
+        
+        const option = document.createElement('option');
+        option.value = file.path;
+        // 只显示文件名，不显示大小
+        try {
+            option.textContent = decodeURIComponent(escape(file.name));
+        } catch (e) {
+            option.textContent = file.name;
+        }
+        
+        // 如果当前有分组，添加到最后一个optgroup
+        if (currentFolder !== '') {
+            const lastOptgroup = selectElement.lastChild;
+            if (lastOptgroup.tagName === 'OPTGROUP') {
+                lastOptgroup.appendChild(option);
+            } else {
+                selectElement.appendChild(option);
+            }
+        } else {
+            selectElement.appendChild(option);
+        }
+    });
+}
+
+/**
  * 从路径播放视频
  */
 function playVideoFromPath(videoPath, targetPlayerId) {
-    // 获取文件名
-    const fileName = videoPath.split('/').pop();
-    // 构造视频文件的访问URL
-    // 注意：这需要服务器支持文件访问
-    const videoUrl = `/static/uploads/${fileName}`;
+    // videoPath已经是完整的web路径，直接使用
+    // 格式: /static/uploads/folder/file.mp4 (已URL编码)
+    const videoUrl = videoPath;
+    
     // 确定要播放视频的播放器
     let videoPlayer;
     if (targetPlayerId) {
@@ -966,5 +1071,6 @@ export {
     exportToExcel,
     updateRecordSelectAllCheckbox,
     startCutting,
-    updateCutOutputFilesList
+    updateCutOutputFilesList,
+    renderVideoList  // 导出渲染函数
 };

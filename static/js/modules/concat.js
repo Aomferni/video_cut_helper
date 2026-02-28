@@ -107,32 +107,52 @@ function doRefreshVideoListForConcat() {
     fetch('/list_upload_videos')
     .then(response => response.json())
     .then(data => {
-        console.log('获取到上传视频列表 (拼接页面):', data); // 调试信息
+        console.log('获取到上传视频列表 (拼接页面):', data);
         const selectElement = document.getElementById('existingVideoSelectForConcat');
-        console.log('选择元素 (拼接页面):', selectElement); // 调试信息
         if (!selectElement) {
             console.error('找不到 existingVideoSelectForConcat 元素');
             return;
         }
+        
         // 保留默认选项
         const defaultOption = selectElement.options[0];
         selectElement.innerHTML = '';
         selectElement.appendChild(defaultOption);
-        // 添加视频文件选项
+        
+        // 按文件夹分组显示
         if (data.files) {
+            let currentFolder = '';
             data.files.forEach(file => {
+                // 如果文件夹变化，添加分组标题
+                if (file.folder !== currentFolder) {
+                    currentFolder = file.folder;
+                    if (currentFolder !== '') {
+                        const optgroup = document.createElement('optgroup');
+                        const folderName = currentFolder.split('/').pop() || currentFolder;
+                        optgroup.label = `📁 ${folderName}`;
+                        selectElement.appendChild(optgroup);
+                    }
+                }
+                
                 const option = document.createElement('option');
                 option.value = file.path;
                 try {
-                    option.textContent = `${decodeURIComponent(escape(file.name))} (${file.size})`;
+                    option.textContent = decodeURIComponent(escape(file.name));
                 } catch (e) {
-                    try {
-                        option.textContent = `${decodeURIComponent(escape(file.name))} (${file.size})`;
-                    } catch (e) {
-                        option.textContent = `${file.name} (${file.size})`;
-                    }
+                    option.textContent = file.name;
                 }
-                selectElement.appendChild(option);
+                
+                // 添加到合适的位置
+                if (currentFolder !== '') {
+                    const lastOptgroup = selectElement.lastChild;
+                    if (lastOptgroup.tagName === 'OPTGROUP') {
+                        lastOptgroup.appendChild(option);
+                    } else {
+                        selectElement.appendChild(option);
+                    }
+                } else {
+                    selectElement.appendChild(option);
+                }
             });
         }
         
@@ -329,8 +349,16 @@ function concatVideos() {
         return;
     }
     resultBox.textContent = "正在处理视频拼接...";
-    // 准备要发送的数据
-    const videoPaths = uploadedConcatVideos.map(video => video.path);
+    // 准备要发送的数据 - 将web路径转换为文件系统路径
+    const videoPaths = uploadedConcatVideos.map(video => {
+        let path = video.path;
+        // 如果是web路径，转换为文件系统路径
+        if (path.startsWith('/static/')) {
+            path = path.substring(1); // 去掉开头的 '/'
+            path = decodeURIComponent(path); // URL解码
+        }
+        return path;
+    });
     const requestData = {
         video_paths: videoPaths,
         output_filename: outputFileName
@@ -411,12 +439,20 @@ function setVideoCover() {
         return;
     }
     
+    // 将web路径转换为文件系统路径
+    let filePath = videoPath;
+    if (filePath.startsWith('/static/')) {
+        filePath = filePath.substring(1); // 去掉开头的 '/'
+    }
+    // URL解码
+    filePath = decodeURIComponent(filePath);
+    
     const resultBox = document.getElementById('concatResult');
     resultBox.textContent = "正在设置视频封面...";
     
     // 准备要发送的数据
     const requestData = {
-        video_path: videoPath,
+        video_path: filePath,
         cover_path: selectedCoverImage
     };
     
