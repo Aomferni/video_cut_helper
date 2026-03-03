@@ -1,8 +1,9 @@
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify, send_file, send_from_directory
 from typing import Any, Dict, Union, Tuple
 from flask.wrappers import Response
 from urllib.parse import quote
 import os
+import requests
 import pandas as pd
 from moviepy.editor import VideoFileClip, concatenate_videoclips
 import tempfile
@@ -28,11 +29,16 @@ except ImportError:
 
 app = Flask(__name__)
 
-# 配置文件路径
-UPLOAD_FOLDER = 'static/uploads'
-OUTPUT_FOLDER = 'static/output'
+# AI 活动策划 API 配置
+API_KEY = os.environ.get('MS_KEY', '')
+API_URL = "https://api-inference.modelscope.cn/v1/chat/completions"
+
+# 配置文件路径（使用绝对路径，避免工作目录问题）
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_FOLDER = os.path.join(BASE_DIR, 'static/uploads')
+OUTPUT_FOLDER = os.path.join(BASE_DIR, 'static/output')
 # 添加PDF输出目录
-PDF_OUTPUT_FOLDER = 'static/output/pdf_images'
+PDF_OUTPUT_FOLDER = os.path.join(BASE_DIR, 'static/output/pdf_images')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['OUTPUT_FOLDER'] = OUTPUT_FOLDER
 app.config['PDF_OUTPUT_FOLDER'] = PDF_OUTPUT_FOLDER
@@ -599,13 +605,66 @@ def cut_videos_from_dataframe(input_video_path, df, concat_after_cut=False, audi
         return error_message
 
 
+@app.route('/api/chat', methods=['POST'])
+def chat():
+    """代理活动策划 AI 服务"""
+    if not API_KEY:
+        return jsonify({'error': 'API KEY not configured'}), 500
+
+    try:
+        data = request.get_json()
+        prompt = data.get('prompt', '')
+
+        if not prompt:
+            return jsonify({'error': 'Prompt is required'}), 400
+
+        # 调用 ModelScope API
+        response = requests.post(
+            API_URL,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {API_KEY}"
+            },
+            json={
+                "model": "Qwen/Qwen3-VL-30B-A3B-Instruct",
+                "messages": [{
+                    "role": "user",
+                    "content": [{"type": "text", "text": prompt}]
+                }],
+                "max_tokens": 4096,
+                "temperature": 0.7,
+                "enable_thinking": False
+            },
+            timeout=120
+        )
+
+        if response.status_code != 200:
+            return jsonify({'error': f'AI API error: {response.status_code}'}), response.status_code
+
+        result = response.json()
+        content = result.get('choices', [{}])[0].get('message', {}).get('content', '')
+
+        return jsonify({'content': content})
+
+    except requests.exceptions.Timeout:
+        return jsonify({'error': 'Request timeout'}), 504
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/')
 def index():
     return render_template('index.html')
 
+
 @app.route('/about')
 def about():
     return render_template('about.html')
+
+
+@app.route('/planner')
+def planner():
+    """直播活动流程生成器页面（使用原始活动流程生成器静态页）"""
+    return send_from_directory('toAdd', 'index.html')
 
 @app.route('/manage')
 def manage():

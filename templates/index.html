@@ -3,17 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>视频自动剪辑工具</title>
+    <title>直播内容策划及处理工作站</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
     <div class="container">
-        <h1>视频自动剪辑工具</h1>
-        <p class="description">上传原始视频文件和剪辑需求，或直接在表格中填写剪辑需求，自动完成视频剪辑</p>
+        <h1>直播内容策划及处理工作站</h1>
+        <p class="description">围绕一次直播的全链路：从活动策划、直播执行到内容剪辑与资源产出</p>
         <p style="text-align: center; margin-bottom: 20px;">
             <a href="{{ url_for('about') }}" style="color: #4CAF50; text-decoration: none; font-weight: bold;">ℹ️ 项目介绍</a>
             <span style="margin: 0 10px; color: #ccc;">|</span>
             <a href="{{ url_for('manage') }}" style="color: #2196F3; text-decoration: none; font-weight: bold;">📁 文件管理</a>
+            <span style="margin: 0 10px; color: #ccc;">|</span>
+            <a href="{{ url_for('planner') }}" style="color: #FF9800; text-decoration: none; font-weight: bold;">📝 活动流程生成器</a>
         </p>
         
         <div class="tabs">

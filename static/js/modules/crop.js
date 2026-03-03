@@ -220,14 +220,34 @@ function refreshCropVideoList() {
         const selectElement = document.getElementById('existingVideoSelectForCrop');
         if (!selectElement) return;
         
+        // 检查是否有错误
+        if (data.error) {
+            console.error('获取视频列表失败:', data.error);
+            renderCropVideoList(selectElement, []);
+            return;
+        }
+        
         // 保存完整文件列表
         selectElement.allFiles = data.files || [];
+        console.log('获取到视频文件:', selectElement.allFiles.length, '个');
+        
+        // 获取当前搜索框的内容
+        const searchInput = document.getElementById('videoSearchInputForCrop');
+        const currentKeyword = searchInput ? searchInput.value.toLowerCase().trim() : '';
+        
+        // 根据当前搜索关键词过滤文件
+        let filesToRender = selectElement.allFiles;
+        if (currentKeyword !== '') {
+            filesToRender = selectElement.allFiles.filter(file => 
+                file.name.toLowerCase().includes(currentKeyword) || 
+                file.folder.toLowerCase().includes(currentKeyword)
+            );
+        }
         
         // 渲染文件列表
-        renderCropVideoList(selectElement, selectElement.allFiles);
+        renderCropVideoList(selectElement, filesToRender);
         
         // 添加搜索功能
-        const searchInput = document.getElementById('videoSearchInputForCrop');
         if (searchInput) {
             const newSearchInput = searchInput.cloneNode(true);
             searchInput.parentNode.replaceChild(newSearchInput, searchInput);
@@ -282,7 +302,7 @@ function renderCropVideoList(selectElement, files) {
     if (!files || files.length === 0) {
         const option = document.createElement('option');
         option.disabled = true;
-        option.textContent = '没有找到匹配的文件';
+        option.textContent = '没有找到视频文件（请检查 uploads 文件夹）';
         selectElement.appendChild(option);
         return;
     }
@@ -407,8 +427,9 @@ function loadVideoForCrop(videoPath) {
  * 加载视频到播放器
  */
 function loadVideoToPlayer(videoPath) {
-    const fileName = videoPath.split('/').pop();
-    const videoUrl = `/static/uploads/${encodeURIComponent(fileName)}`;
+    // videoPath 已经是完整的 web 路径，如 /static/uploads/folder/file.mp4
+    // 直接使用，不需要重新构建
+    const videoUrl = videoPath;
     
     if (cropVideoPlayer) {
         cropVideoPlayer.src = videoUrl;

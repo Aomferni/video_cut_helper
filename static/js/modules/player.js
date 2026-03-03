@@ -1,5 +1,8 @@
 // 视频播放器模块
 
+// 导入排序函数
+import { sortTableByStartTime } from './cutting.js';
+
 // 全局变量
 let activeCell = null;
 
@@ -181,11 +184,23 @@ function doRefreshVideoListForPlayer() {
         // 保存完整文件列表
         selectElement.allFiles = data.files || [];
         
+        // 获取当前搜索框的内容
+        const searchInput = document.getElementById('videoSearchInputForPlayer');
+        const currentKeyword = searchInput ? searchInput.value.toLowerCase().trim() : '';
+        
+        // 根据当前搜索关键词过滤文件
+        let filesToRender = selectElement.allFiles;
+        if (currentKeyword !== '') {
+            filesToRender = selectElement.allFiles.filter(file => 
+                file.name.toLowerCase().includes(currentKeyword) || 
+                file.folder.toLowerCase().includes(currentKeyword)
+            );
+        }
+        
         // 渲染文件列表
-        renderVideoListForPlayer(selectElement, selectElement.allFiles);
+        renderVideoListForPlayer(selectElement, filesToRender);
         
         // 添加搜索功能
-        const searchInput = document.getElementById('videoSearchInputForPlayer');
         if (searchInput) {
             const newSearchInput = searchInput.cloneNode(true);
             searchInput.parentNode.replaceChild(newSearchInput, searchInput);
@@ -409,6 +424,12 @@ function initRecordTimeTable() {
             const duration = calculateDuration(startTimeCell.textContent, endTimeCell.textContent);
             durationCell.textContent = duration;
         });
+        startTimeCell.addEventListener('blur', function() {
+            const startTime = startTimeCell.textContent.trim();
+            if (startTime !== '00:00:00' && startTime !== '') {
+                sortTableByStartTime('#recordTable');
+            }
+        });
         endTimeCell.addEventListener('input', function() {
             const duration = calculateDuration(startTimeCell.textContent, endTimeCell.textContent);
             durationCell.textContent = duration;
@@ -450,6 +471,18 @@ function initRecordTimeTable() {
         cell.addEventListener('click', function() {
             setActiveCell(this);
         });
+    });
+    // 为现有表格的开始时间单元格（每行 td index=1）添加 blur 排序事件
+    document.querySelectorAll('#recordTable tbody tr').forEach(row => {
+        const cells = row.querySelectorAll('td');
+        if (cells.length >= 2) {
+            cells[1].addEventListener('blur', function() {
+                const startTime = this.textContent.trim();
+                if (startTime !== '00:00:00' && startTime !== '') {
+                    sortTableByStartTime('#recordTable');
+                }
+            });
+        }
     });
     // 为现有的删除按钮添加事件监听器
     document.querySelectorAll('#recordTable .delete-record-row-btn').forEach(button => {
@@ -522,6 +555,14 @@ function recordCurrentTime() {
                 if (durationCell) {
                     const duration = calculateDuration(startTimeCell.textContent, endTimeCell.textContent);
                     durationCell.textContent = duration;
+                }
+            }
+            // 若激活的是开始时间列（td index=1），记录后触发排序
+            const allCells = row.querySelectorAll('td');
+            if (allCells.length >= 2 && activeCell === allCells[1]) {
+                const startTime = currentTime.trim();
+                if (startTime !== '00:00:00' && startTime !== '') {
+                    sortTableByStartTime('#recordTable');
                 }
             }
         }

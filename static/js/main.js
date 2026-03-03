@@ -19,7 +19,8 @@ import {
     exportToExcel,
     updateRecordSelectAllCheckbox,
     startCutting,
-    updateCutOutputFilesList
+    updateCutOutputFilesList,
+    sortTableByStartTime
 } from './modules/cutting.js';
 
 import { 

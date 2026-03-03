@@ -348,6 +348,12 @@ function initCuttingTab() {
             const duration = calculateDuration(cell1.textContent, cell2.textContent);
             durationCell.textContent = duration;
         });
+        cell1.addEventListener('blur', function() {
+            const startTime = cell1.textContent.trim();
+            if (startTime !== '00:00:00' && startTime !== '') {
+                sortTableByStartTime();
+            }
+        });
         cell2.addEventListener('input', function() {
             const duration = calculateDuration(cell1.textContent, cell2.textContent);
             durationCell.textContent = duration;
@@ -407,6 +413,18 @@ function initCuttingTab() {
             setActiveCell(this);
         });
     });
+    // 为现有表格的开始时间单元格（每行第2列，td index=1）添加 blur 排序事件
+    document.querySelectorAll('#clipTable tbody tr').forEach(row => {
+        const cells = row.querySelectorAll('td');
+        if (cells.length >= 2) {
+            cells[1].addEventListener('blur', function() {
+                const startTime = this.textContent.trim();
+                if (startTime !== '00:00:00' && startTime !== '') {
+                    sortTableByStartTime();
+                }
+            });
+        }
+    });
     // 为现有的删除按钮添加事件监听器
     document.querySelectorAll('#clipTable .delete-row-btn').forEach(button => {
         button.addEventListener('click', function() {
@@ -461,11 +479,23 @@ function doRefreshVideoListForCutting() {
         // 保存完整文件列表到元素上，供搜索使用
         selectElement.allFiles = data.files || [];
         
+        // 获取当前搜索框的内容
+        const searchInput = document.getElementById('videoSearchInputForCutting');
+        const currentKeyword = searchInput ? searchInput.value.toLowerCase().trim() : '';
+        
+        // 根据当前搜索关键词过滤文件
+        let filesToRender = selectElement.allFiles;
+        if (currentKeyword !== '') {
+            filesToRender = selectElement.allFiles.filter(file => 
+                file.name.toLowerCase().includes(currentKeyword) || 
+                file.folder.toLowerCase().includes(currentKeyword)
+            );
+        }
+        
         // 渲染文件列表
-        renderVideoList(selectElement, selectElement.allFiles);
+        renderVideoList(selectElement, filesToRender);
         
         // 添加搜索功能
-        const searchInput = document.getElementById('videoSearchInputForCutting');
         if (searchInput) {
             // 移除旧的监听器（如果有）
             const newSearchInput = searchInput.cloneNode(true);
@@ -864,6 +894,15 @@ function updateTable(data, tableSelector, checkboxClass, deleteBtnClass) {
                         durationCell.textContent = duration;
                     }
                 });
+                // 开始时间单元格（index 0）失焦时触发排序
+                if (index === 0) {
+                    cell.addEventListener('blur', function() {
+                        const startTime = this.textContent.trim();
+                        if (startTime !== '00:00:00' && startTime !== '') {
+                            sortTableByStartTime(tableSelector);
+                        }
+                    });
+                }
             }
         });
 
@@ -906,6 +945,45 @@ function setActiveCell(cell) {
     if (activeCell) {
         activeCell.classList.add('active-cell');
     }
+}
+
+/**
+ * 按开始时间对剪辑表格行进行排序
+ * 仅当存在开始时间不为 00:00:00 的行时触发
+ */
+function sortTableByStartTime(tableSelector = '#clipTable') {
+    const tbody = document.querySelector(tableSelector + ' tbody');
+    if (!tbody) return;
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    if (rows.length < 2) return;
+
+    // 将行分为两组：开始时间为 00:00:00（或空）的行保持原位，其余行参与排序
+    const zeroRows = [];
+    const nonZeroRows = [];
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const startTime = cells.length >= 2 ? cells[1].textContent.trim() : '';
+        if (startTime === '00:00:00' || startTime === '') {
+            zeroRows.push(row);
+        } else {
+            nonZeroRows.push(row);
+        }
+    });
+
+    // 非零行不足2行时无需排序
+    if (nonZeroRows.length < 2) return;
+
+    // 仅对非零行按开始时间升序排序
+    nonZeroRows.sort((a, b) => {
+        const cellsA = a.querySelectorAll('td');
+        const cellsB = b.querySelectorAll('td');
+        const startA = cellsA.length >= 2 ? hmsToSeconds(cellsA[1].textContent.trim()) : 0;
+        const startB = cellsB.length >= 2 ? hmsToSeconds(cellsB[1].textContent.trim()) : 0;
+        return startA - startB;
+    });
+
+    // 重新插入：零行在前（保持原相对顺序），非零行在后（已排序）
+    [...zeroRows, ...nonZeroRows].forEach(row => tbody.appendChild(row));
 }
 
 /**
@@ -1072,5 +1150,6 @@ export {
     updateRecordSelectAllCheckbox,
     startCutting,
     updateCutOutputFilesList,
-    renderVideoList  // 导出渲染函数
+    renderVideoList,  // 导出渲染函数
+    sortTableByStartTime  // 导出排序函数
 };
