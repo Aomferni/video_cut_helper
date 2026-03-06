@@ -2,4 +2,4 @@ static/output/*
 static/uploads/*
 __pycache__/*
 *.DS_Store
-toAdd/*
+toAdd/__pycache__/*
