@@ -62,6 +62,9 @@ import { initPdfTab } from './modules/pdf.js';
 // 导入图像批处理模块
 import { initBatchProcessTab } from './modules/batch_process.js';
 
+// 导入视频批量转音频模块
+import { initBatchAudioTab } from './modules/batch_audio.js';
+
 // 导入框选裁剪模块
 import { initCropModule } from './modules/crop.js';
 
@@ -95,6 +98,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 初始化图像批处理功能
     initBatchProcessTab();
+    
+    // 初始化视频批量转音频功能
+    initBatchAudioTab();
     
     // 初始化框选裁剪功能
     initCropModule();

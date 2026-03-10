@@ -28,6 +28,8 @@
             <button class="tab-button" data-tab="pdf">PDF转图片</button>
             <!-- 添加图像批处理标签页按钮 -->
             <button class="tab-button" data-tab="batch_process">图像批处理</button>
+            <!-- 添加视频批量转音频标签页按钮 -->
+            <button class="tab-button" data-tab="batch_audio">批量转音频</button>
         </div>
         
         <!-- 视频剪辑标签页 -->
@@ -691,6 +693,54 @@
             <div class="output-files">
                 <h3>输出文件</h3>
                 <ul id="outputFilesList"></ul>
+            </div>
+        </div>
+        
+        <!-- 视频批量转音频标签页 -->
+        <div id="batch_audio" class="tab-content">
+            <div class="row">
+                <div class="column">
+                    <div class="form-group">
+                        <label for="batchAudioVideoSelect">选择视频文件（支持多选）</label>
+                        <div class="file-selection-container">
+                            <select id="batchAudioVideoSelect" class="file-select" multiple size="10">
+                                <option value="">请先上传视频文件</option>
+                            </select>
+                            <button id="refreshBatchAudioListBtn" class="refresh-btn">刷新列表</button>
+                        </div>
+                        <div style="margin-top: 10px;">
+                            <button id="selectAllBatchAudioBtn" class="btn btn-secondary" style="margin-right: 10px;">全选</button>
+                            <button id="deselectAllBatchAudioBtn" class="btn btn-secondary">取消全选</button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="audioFormat">输出音频格式</label>
+                        <select id="audioFormat" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="mp3" selected>MP3 (推荐)</option>
+                            <option value="wav">WAV (无损)</option>
+                            <option value="aac">AAC</option>
+                            <option value="m4a">M4A</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <button id="batchConvertAudioBtn" class="btn btn-primary" style="width: 100%;">🎵 开始批量转换</button>
+                    </div>
+                </div>
+                
+                <div class="column">
+                    <div id="batchAudioResult" class="result-box">
+                        <p>请选择要转换的视频文件，然后点击"开始批量转换"按钮</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="output-files">
+                <h3>音频输出文件</h3>
+                <ul id="batchAudioOutputList">
+                    <li>暂无音频输出文件</li>
+                </ul>
             </div>
         </div>
         

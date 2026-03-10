@@ -608,9 +608,6 @@ def cut_videos_from_dataframe(input_video_path, df, concat_after_cut=False, audi
 @app.route('/api/chat', methods=['POST'])
 def chat():
     """代理活动策划 AI 服务"""
-    if not API_KEY:
-        return jsonify({'error': 'API KEY not configured'}), 500
-
     try:
         data = request.get_json()
         prompt = data.get('prompt', '')
@@ -618,12 +615,19 @@ def chat():
         if not prompt:
             return jsonify({'error': 'Prompt is required'}), 400
 
+        # 优先使用用户传入的 API KEY，否则使用环境变量中的 KEY
+        user_api_key = request.headers.get('X-API-Key')
+        api_key = user_api_key if user_api_key else API_KEY
+        
+        if not api_key:
+            return jsonify({'error': 'API KEY not configured'}), 500
+
         # 调用 ModelScope API
         response = requests.post(
             API_URL,
             headers={
                 "Content-Type": "application/json",
-                "Authorization": f"Bearer {API_KEY}"
+                "Authorization": f"Bearer {api_key}"
             },
             json={
                 "model": "Qwen/Qwen3-VL-30B-A3B-Instruct",
@@ -663,8 +667,8 @@ def about():
 
 @app.route('/planner')
 def planner():
-    """直播活动流程生成器页面（使用原始活动流程生成器静态页）"""
-    return send_from_directory('toAdd', 'index.html')
+    """直播活动流程生成器页面"""
+    return render_template('planner.html')
 
 @app.route('/manage')
 def manage():
@@ -1453,6 +1457,203 @@ def crop_video_with_time_route():
         return jsonify({'error': '视频裁剪超时，请检查视频文件大小'})
     except Exception as e:
         return jsonify({'error': f'处理过程中出现错误: {str(e)}'})
+
+@app.route('/convert_to_audio', methods=['POST'])
+def convert_to_audio():
+    """将视频转换为音频，超过2小时自动切分"""
+    try:
+        data = request.get_json()
+        video_path = data.get('video_path')
+        audio_format = data.get('audio_format', 'mp3')
+        
+        print(f"[DEBUG] Received video_path: {video_path}")
+        
+        if not video_path:
+            return jsonify({'error': '未提供视频路径'}), 400
+        
+        # URL解码路径
+        from urllib.parse import unquote
+        video_path = unquote(video_path)
+        print(f"[DEBUG] URL decoded path: {video_path}")
+        
+        # 处理URL路径或相对路径
+        if video_path.startswith('/static/'):
+            video_path = video_path.replace('/static/', 'static/')
+        if video_path.startswith('/'):
+            video_path = video_path[1:]
+        
+        print(f"[DEBUG] Processed path: {video_path}")
+        
+        # 转换为绝对路径
+        if not os.path.isabs(video_path):
+            video_path = os.path.join(BASE_DIR, video_path)
+        
+        print(f"[DEBUG] Absolute path: {video_path}")
+        print(f"[DEBUG] File exists: {os.path.exists(video_path)}")
+        
+        if not os.path.exists(video_path):
+            return jsonify({'error': f'视频文件不存在: {video_path}'}), 404
+        
+        # 检查文件大小，验证文件有效性
+        file_size = os.path.getsize(video_path)
+        if file_size == 0:
+            return jsonify({'error': '视频文件为空（0字节），请重新上传文件'}), 400
+        if file_size < 1024:  # 小于1KB的文件可能已损坏
+            return jsonify({'error': f'视频文件异常过小（{file_size}字节），可能已损坏，请重新上传'}), 400
+        
+        # 验证音频格式
+        valid_formats = ['mp3', 'wav', 'aac', 'm4a', 'ogg', 'flac']
+        if audio_format.lower() not in valid_formats:
+            return jsonify({'error': f'不支持的音频格式: {audio_format}'}), 400
+        
+        # 获取视频时长
+        duration_cmd = [FFMPEG_PATH, '-i', video_path]
+        duration_result = subprocess.run(duration_cmd, capture_output=True, text=True)
+        
+        # 从stderr中解析时长
+        duration_seconds = 0
+        for line in duration_result.stderr.split('\n'):
+            if 'Duration' in line:
+                try:
+                    duration_str = line.split('Duration: ')[1].split(',')[0]
+                    h, m, s = duration_str.split(':')
+                    duration_seconds = int(h) * 3600 + int(m) * 60 + float(s)
+                    break
+                except:
+                    pass
+        
+        print(f"[DEBUG] Video duration: {duration_seconds} seconds")
+        
+        # 根据格式选择编码器和参数
+        format_settings = {
+            'mp3': {'codec': 'libmp3lame', 'bitrate': '192k'},
+            'wav': {'codec': 'pcm_s16le', 'bitrate': None},
+            'aac': {'codec': 'aac', 'bitrate': '192k'},
+            'm4a': {'codec': 'aac', 'bitrate': '192k'},
+            'ogg': {'codec': 'libvorbis', 'bitrate': '192k'},
+            'flac': {'codec': 'flac', 'bitrate': None}
+        }
+        
+        settings = format_settings.get(audio_format.lower(), format_settings['mp3'])
+        
+        # 生成输出文件名
+        filename = os.path.basename(video_path)
+        name, _ = os.path.splitext(filename)
+        
+        # 定义最大片段时长（2小时 = 7200秒）
+        MAX_SEGMENT_DURATION = 7200  # 2小时
+        
+        # 如果视频时长超过2小时，切分成多个音频文件
+        if duration_seconds > MAX_SEGMENT_DURATION:
+            print(f"[DEBUG] Video longer than 2 hours, splitting into segments")
+            
+            # 计算需要多少个片段
+            num_segments = int(duration_seconds // MAX_SEGMENT_DURATION) + (1 if duration_seconds % MAX_SEGMENT_DURATION > 0 else 0)
+            print(f"[DEBUG] Will create {num_segments} segments")
+            
+            output_files = []
+            total_size_mb = 0
+            
+            for i in range(num_segments):
+                start_time = i * MAX_SEGMENT_DURATION
+                segment_duration = min(MAX_SEGMENT_DURATION, duration_seconds - start_time)
+                
+                # 生成片段文件名
+                segment_filename = f"{name}_part{i+1:02d}.{audio_format.lower()}"
+                segment_path = os.path.join(app.config['OUTPUT_FOLDER'], segment_filename)
+                
+                # 构建FFmpeg命令（带时间范围）
+                cmd = [
+                    FFMPEG_PATH,
+                    '-ss', str(start_time),
+                    '-t', str(segment_duration),
+                    '-i', video_path,
+                    '-vn',
+                    '-acodec', settings['codec'],
+                    '-ar', '44100',
+                    '-ac', '2',
+                ]
+                
+                if settings['bitrate']:
+                    cmd.extend(['-b:a', settings['bitrate']])
+                
+                cmd.extend(['-y', segment_path])
+                
+                print(f"[DEBUG] Converting segment {i+1}/{num_segments}: {start_time}s - {start_time + segment_duration}s")
+                
+                # 执行转换
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+                
+                if result.returncode != 0:
+                    raise Exception(f"FFmpeg转换错误（片段{i+1}）: {result.stderr}")
+                
+                # 获取文件大小
+                segment_size = os.path.getsize(segment_path)
+                segment_size_mb = segment_size / (1024 * 1024)
+                total_size_mb += segment_size_mb
+                
+                output_files.append({
+                    'name': segment_filename,
+                    'path': segment_path,
+                    'size_mb': round(segment_size_mb, 2),
+                    'start_time': start_time,
+                    'duration': segment_duration
+                })
+            
+            return jsonify({
+                'success': True,
+                'message': f'转换成功: 已切分为 {num_segments} 个音频文件（总大小: {total_size_mb:.2f} MB）',
+                'audio_files': output_files,
+                'total_size_mb': round(total_size_mb, 2),
+                'is_split': True,
+                'total_duration': duration_seconds
+            })
+        
+        else:
+            # 视频时长不超过2小时，直接转换
+            output_filename = f"{name}.{audio_format.lower()}"
+            output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
+            
+            # 构建FFmpeg命令
+            cmd = [
+                FFMPEG_PATH,
+                '-i', video_path,
+                '-vn',
+                '-acodec', settings['codec'],
+                '-ar', '44100',
+                '-ac', '2',
+            ]
+            
+            if settings['bitrate']:
+                cmd.extend(['-b:a', settings['bitrate']])
+            
+            cmd.extend(['-y', output_path])
+            
+            # 执行转换
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+            
+            if result.returncode != 0:
+                raise Exception(f"FFmpeg转换错误: {result.stderr}")
+            
+            # 获取输出文件大小
+            output_size = os.path.getsize(output_path)
+            output_size_mb = output_size / (1024 * 1024)
+            
+            return jsonify({
+                'success': True,
+                'message': f'转换成功: {output_filename} ({output_size_mb:.2f} MB)',
+                'audio_path': output_path,
+                'audio_name': output_filename,
+                'size_mb': round(output_size_mb, 2),
+                'is_split': False,
+                'duration': duration_seconds
+            })
+        
+    except subprocess.TimeoutExpired:
+        return jsonify({'error': '转换超时，请检查视频文件大小'}), 504
+    except Exception as e:
+        return jsonify({'error': f'转换失败: {str(e)}'}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5001)

@@ -219,9 +219,51 @@
 - 网络带宽限制
 - 文件存储空间不足
 
-## 10. 附录
+## 10. 项目目录结构
 
-### 10.1 术语表
+### 10.1 主要目录说明
+
+```
+video_cut_helper/
+├── docs/                   # 项目文档目录
+│   ├── rules/             # 开发规则与提示
+│   ├── PRD.md             # 产品需求文档
+│   ├── structure.md       # 系统架构文档
+│   └── test_plan.md       # 测试计划文档
+├── templates/             # HTML模板文件
+├── static/                # 静态资源文件
+│   ├── css/              # 样式文件
+│   ├── js/               # JavaScript文件
+│   ├── uploads/          # 上传文件存储
+│   └── output/           # 输出文件存储
+├── toAdd/                 # 功能新增测试工作区
+│   ├── planner/          # 活动策划功能测试区
+│   ├── remix_videos/     # 视频混剪功能测试区
+│   ├── static/           # 测试用静态资源
+│   ├── app.py            # 测试用后端入口
+│   └── index.html        # 测试用前端页面
+└── app.py                 # 主应用入口
+```
+
+### 10.2 toAdd 文件夹说明
+
+**用途**：`toAdd` 文件夹是**功能新增测试工作区**，用于开发和测试新功能。
+
+**工作流程**：
+1. 在 `toAdd` 目录下开发新功能（如 `toAdd/planner/` 下的活动策划功能）
+2. 完成功能开发和初步测试
+3. 测试验证通过后，将代码迁移到正式项目目录：
+   - Python后端代码 → 合并到根目录 `app.py` 或相应模块
+   - HTML模板 → 移动到 `templates/` 目录
+   - JavaScript模块 → 移动到 `static/js/modules/` 目录
+   - CSS样式 → 移动到 `static/css/` 目录
+4. 迁移完成后，清理 `toAdd` 中的测试代码
+
+**当前测试中的功能**：
+- `planner/` - 活动策划功能（包含 `app.py` 和 `index.html`）
+- `remix_videos/` - 视频混剪功能
+
+### 10.3 术语表
 - 零重编码：不重新编码视频和音频流，直接复制数据进行处理，提高处理速度
 - FFmpeg：开源的音视频处理工具
 - MoviePy：Python视频编辑库

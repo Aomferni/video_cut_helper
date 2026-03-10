@@ -3,415 +3,1753 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>直播活动流程生成器 - 直播内容策划及处理工作站</title>
+    <title>活动流程生成器</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
         }
-        .container { max-width: 1200px; margin: 0 auto; }
-        header { text-align: center; color: #fff; margin-bottom: 24px; }
-        header h1 { font-size: 2rem; margin-bottom: 8px; }
-        header p { opacity: 0.9; font-size: 0.95rem; }
-        header a { color: #ffeb3b; text-decoration: none; margin-left: 8px; }
 
-        .card {
-            background: #fff;
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .nav-links {
+            margin-top: 15px;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 20px;
+            margin: 0 5px;
+            transition: all 0.3s;
+        }
+
+        .nav-links a:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .main-content {
+            display: flex;
+            gap: 20px;
+        }
+
+        .sidebar {
+            width: 280px;
+            flex-shrink: 0;
+        }
+
+        .sidebar-card {
+            background: white;
             border-radius: 12px;
             padding: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.12);
-            margin-bottom: 18px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
         }
+
+        .sidebar-card h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .history-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .history-item:hover {
+            background: #f5f5f5;
+            border-color: #667eea;
+        }
+
+        .history-item.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .history-item .title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 4px;
+        }
+
+        .history-item .date {
+            font-size: 0.75rem;
+            opacity: 0.7;
+        }
+
+        .history-item .delete-btn {
+            float: right;
+            background: none;
+            border: none;
+            color: #ff4757;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 0;
+            opacity: 0.6;
+        }
+
+        .history-item .delete-btn:hover {
+            opacity: 1;
+        }
+
+        .history-item.active .delete-btn {
+            color: white;
+        }
+
+        .btn-new {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-new:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .content-area {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
         .card-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 12px;
-            border-bottom: 1px solid #f0f0f0;
-            padding-bottom: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
         }
+
         .card-header h2 {
-            font-size: 1.1rem;
+            color: #333;
+            font-size: 1.3rem;
             display: flex;
             align-items: center;
-            gap: 8px;
-            color: #333;
+            gap: 10px;
         }
+
         .step-badge {
-            width: 22px;
-            height: 22px;
-            border-radius: 50%;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #fff;
-            display: inline-flex;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.8rem;
+            font-size: 0.85rem;
+            font-weight: 600;
         }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-success {
+            background: #00b894;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #00a382;
+        }
+
+        .btn-danger {
+            background: #ff4757;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #ff3344;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
         textarea {
             width: 100%;
-            min-height: 120px;
-            padding: 12px;
-            border-radius: 8px;
+            min-height: 150px;
+            padding: 15px;
             border: 2px solid #e0e0e0;
-            font-size: 0.95rem;
+            border-radius: 8px;
+            font-size: 1rem;
             resize: vertical;
             font-family: inherit;
+            transition: border-color 0.2s;
         }
+
         textarea:focus {
             outline: none;
             border-color: #667eea;
         }
-        .btn {
-            padding: 8px 16px;
-            border-radius: 8px;
-            border: none;
-            cursor: pointer;
-            font-size: 0.9rem;
-            font-weight: 600;
-        }
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #fff;
-        }
-        .btn-secondary { background: #f0f0f0; color: #333; }
-        .btn:disabled { opacity: .6; cursor: not-allowed; }
-        .status-indicator {
-            font-size: 0.8rem;
-            padding: 4px 10px;
-            border-radius: 999px;
-            background: #fff3e0;
-            color: #ef6c00;
-        }
-        .status-indicator.completed { background: #e8f5e9; color: #2e7d32; }
-        .status-indicator.error { background: #ffebee; color: #c62828; }
 
-        .table-container { overflow-x: auto; margin-top: 8px; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-        th, td {
-            border: 1px solid #e0e0e0;
-            padding: 8px 10px;
-            text-align: left;
+        textarea::placeholder {
+            color: #999;
         }
-        th { background: #f5f5f5; font-weight: 600; }
-        td[contenteditable="true"] { cursor: text; }
+
+        .table-container {
+            overflow-x: auto;
+            margin-top: 15px;
+        }
+
+        .table-container.scrollable {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .table-container.scrollable table thead {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border: 1px solid #e0e0e0;
+        }
+
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+
+        td {
+            background: white;
+        }
+
+        tr:nth-child(even) td {
+            background: #f9f9f9;
+        }
+
+        tr:hover td {
+            background: #f0f0ff;
+        }
+
+        td[contenteditable="true"] {
+            cursor: text;
+        }
+
         td[contenteditable="true"]:focus {
             outline: 2px solid #667eea;
             outline-offset: -2px;
+            background: #fff;
         }
-        .field-cell { background: #fafafa; font-weight: 600; width: 140px; }
+
+        .field-cell {
+            font-weight: 600;
+            background: #f5f5f5 !important;
+            min-width: 120px;
+        }
+
+        .value-cell {
+            min-width: 200px;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .loading-spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid #f0f0f0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 15px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .empty-state p {
+            margin-bottom: 15px;
+        }
+
+        .row-actions {
+            white-space: nowrap;
+        }
+
+        .row-actions button {
+            padding: 5px 10px;
+            margin: 0 2px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .btn-add-row {
+            background: #00b894;
+            color: white;
+        }
+
+        .btn-delete-row {
+            background: #ff4757;
+            color: white;
+        }
+
+        .section-collapsed .card-body {
+            display: none;
+        }
+
+        .collapse-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2rem;
+            color: #666;
+            transition: transform 0.2s;
+        }
+
+        .section-collapsed .collapse-btn {
+            transform: rotate(-90deg);
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.8rem;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .status-indicator.pending {
+            background: #fff3e0;
+            color: #ef6c00;
+        }
+
+        .status-indicator.error {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .status-indicator.completed {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
         .toast {
             position: fixed;
-            right: 20px;
             bottom: 20px;
+            right: 20px;
+            padding: 15px 25px;
             background: #333;
-            color: #fff;
-            padding: 12px 18px;
+            color: white;
             border-radius: 8px;
-            font-size: 0.85rem;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
         }
-        .toast.success { background: #00b894; }
-        .toast.error { background: #ff4757; }
+
+        .toast.success {
+            background: #00b894;
+        }
+
+        .toast.error {
+            background: #ff4757;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .progress-bar {
+            display: flex;
+            margin-bottom: 30px;
+            background: white;
+            border-radius: 12px;
+            padding: 15px 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .progress-step {
+            flex: 1;
+            text-align: center;
+            position: relative;
+        }
+
+        .progress-step::after {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            width: 100%;
+            height: 3px;
+            background: #e0e0e0;
+            z-index: 0;
+        }
+
+        .progress-step:last-child::after {
+            display: none;
+        }
+
+        .progress-step .step-num {
+            width: 30px;
+            height: 30px;
+            background: #e0e0e0;
+            color: #999;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.85rem;
+            position: relative;
+            z-index: 1;
+            transition: all 0.3s;
+        }
+
+        .progress-step.active .step-num,
+        .progress-step.completed .step-num {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .progress-step.completed::after {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .progress-step .step-label {
+            display: block;
+            margin-top: 8px;
+            font-size: 0.75rem;
+            color: #999;
+        }
+
+        .progress-step.active .step-label,
+        .progress-step.completed .step-label {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        @media (max-width: 1200px) {
+            .main-content {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.8rem;
+            }
+            .progress-step .step-label {
+                font-size: 0.65rem;
+            }
+            .card {
+                padding: 15px;
+            }
+        }
     </style>
 </head>
 <body>
-<div class="container">
-    <header>
-        <h1>直播活动流程生成器</h1>
-        <p>围绕一次直播，从目标到流程与稿件，一键生成可编辑活动方案</p>
-        <p>← 返回 <a href="/">直播内容策划及处理工作站首页</a></p>
-    </header>
+    <div class="container">
+        <header>
+            <h1>活动流程生成器</h1>
+            <p>借助 AI 能力，快速生成活动策划的关键信息和内容</p>
+            <div class="nav-links">
+                <a href="{{ url_for('index') }}">← 返回工作站</a>
+            </div>
+        </header>
 
-    <!-- Step 1 输入信息 -->
-    <section class="card" id="step1">
-        <div class="card-header">
-            <h2><span class="step-badge">1</span> 输入活动基本信息</h2>
-            <span class="status-indicator" id="step1Status">待生成</span>
-        </div>
-        <div class="card-body">
-            <textarea id="activityInput" placeholder="示例：\n直播主题：代码工业化时代的创业机会\n目标：帮助开发者理解代码工业化带来的机会和路径\n形式：线上直播 + 互动问答\n时长：90 分钟\n核心产品：XXX 平台\n目标人群：有一定编程基础、希望用 AI 放大效率的开发者"></textarea>
-            <div style="margin-top: 10px; text-align: right;">
-                <button class="btn btn-primary" id="btnGenElements">🚀 AI 生成活动要素</button>
+        <div class="progress-bar">
+            <div class="progress-step active" data-step="1">
+                <span class="step-num">1</span>
+                <span class="step-label">输入信息</span>
+            </div>
+            <div class="progress-step" data-step="2">
+                <span class="step-num">2</span>
+                <span class="step-label">活动要素</span>
+            </div>
+            <div class="progress-step" data-step="3">
+                <span class="step-num">3</span>
+                <span class="step-label">活动规划</span>
+            </div>
+            <div class="progress-step" data-step="4">
+                <span class="step-num">4</span>
+                <span class="step-label">活动流程</span>
+            </div>
+            <div class="progress-step" data-step="5">
+                <span class="step-num">5</span>
+                <span class="step-label">PPT主持稿</span>
             </div>
         </div>
-    </section>
 
-    <!-- Step 2 活动要素 -->
-    <section class="card" id="step2">
-        <div class="card-header">
-            <h2><span class="step-badge">2</span> 活动要素总结</h2>
-            <span class="status-indicator" id="step2Status">待生成</span>
-        </div>
-        <div class="card-body">
-            <div id="elementsContent"><p style="color:#777;font-size:0.9rem;">请先在上方输入活动信息并点击“AI 生成活动要素”</p></div>
-            <div style="margin-top: 10px; text-align: right;">
-                <button class="btn btn-secondary" id="btnGenPlan" disabled>📋 基于要素生成活动规划</button>
-            </div>
-        </div>
-    </section>
+        <div class="main-content">
+            <aside class="sidebar">
+                <div class="sidebar-card">
+                    <h3>📁 历史记录</h3>
+                    <button class="btn-new" onclick="createNewActivity()">+ 新建活动策划</button>
+                    <div class="history-list" id="historyList">
+                        <div class="empty-state">
+                            <p>暂无历史记录</p>
+                        </div>
+                    </div>
+                </div>
 
-    <!-- Step 3 活动规划 -->
-    <section class="card" id="step3">
-        <div class="card-header">
-            <h2><span class="step-badge">3</span> 活动规划表格</h2>
-            <span class="status-indicator" id="step3Status">待生成</span>
-        </div>
-        <div class="card-body">
-            <div id="planContent"><p style="color:#777;font-size:0.9rem;">生成要素后，可进一步生成具体规划表格（包含目标、时间、人、渠道等）</p></div>
-            <div style="margin-top: 10px; text-align: right;">
-                <button class="btn btn-secondary" id="btnGenFlow" disabled>📊 基于规划生成直播流程</button>
-            </div>
-        </div>
-    </section>
+                <div class="sidebar-card">
+                    <h3>🔑 API 设置</h3>
+                    <div id="apiKeySection">
+                        <div id="apiKeyInputSection">
+                            <input type="password" id="apiKeyInput" placeholder="请输入 ModelScope API KEY" 
+                                   style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 0.85rem; margin-bottom: 10px;">
+                            <button class="btn btn-primary" onclick="saveApiKey()" style="width: 100%; font-size: 0.85rem;">保存 API KEY</button>
+                        </div>
+                        <div id="apiKeySavedSection" style="display: none;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                                <span style="color: #00b894; font-size: 0.85rem;">✅ API KEY 已设置</span>
+                            </div>
+                            <button class="btn btn-secondary" onclick="showApiKeyInput()" style="width: 100%; font-size: 0.85rem;">修改 API KEY</button>
+                        </div>
+                    </div>
+                </div>
 
-    <!-- Step 4 活动流程 -->
-    <section class="card" id="step4">
-        <div class="card-header">
-            <h2><span class="step-badge">4</span> 直播流程与分工</h2>
-            <span class="status-indicator" id="step4Status">待生成</span>
-        </div>
-        <div class="card-body">
-            <div id="flowContent"><p style="color:#777;font-size:0.9rem;">生成规划后，可拉出详细的时间轴、环节与分工，方便对接剪辑与执行</p></div>
-            <div style="margin-top: 10px; text-align: right;">
-                <button class="btn btn-secondary" id="btnGenPPT" disabled>🎯 生成 PPT 大纲与主持稿</button>
-            </div>
-        </div>
-    </section>
+                <div class="sidebar-card">
+                    <h3>💡 使用提示</h3>
+                    <ul style="font-size: 0.85rem; color: #666; padding-left: 20px; line-height: 1.8;">
+                        <li>输入活动基本信息</li>
+                        <li>AI 自动生成各阶段内容</li>
+                        <li>所有表格支持手动编辑</li>
+                        <li>数据自动保存到本地</li>
+                        <li>支持历史记录回溯</li>
+                    </ul>
+                </div>
+            </aside>
 
-    <!-- Step 5 PPT 与主持稿 -->
-    <section class="card" id="step5">
-        <div class="card-header">
-            <h2><span class="step-badge">5</span> PPT 大纲与主持稿</h2>
-            <span class="status-indicator" id="step5Status">待生成</span>
+            <main class="content-area">
+                <!-- Step 1: 输入信息 -->
+                <div class="card" id="step1">
+                    <div class="card-header">
+                        <h2><span class="step-badge">1</span> 输入活动基本信息</h2>
+                        <button class="collapse-btn" onclick="toggleSection('step1')">▼</button>
+                    </div>
+                    <div class="card-body">
+                        <textarea id="activityInput" placeholder="请输入活动的基本信息，例如：&#10;&#10;活动名称：AI 技术分享会&#10;目标：帮助开发者了解最新 AI 技术&#10;产品：AI 开发平台&#10;时间：2小时&#10;形式：线上直播&#10;预计人数：200人&#10;&#10;您可以随意描述，AI 会自动提取关键信息..."></textarea>
+                        <div style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center;">
+                            <span class="status-indicator pending" id="step1Status">待生成</span>
+                            <button class="btn btn-primary" onclick="generateElements()">🚀 AI 生成活动要素</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: 活动要素总结 -->
+                <div class="card" id="step2">
+                    <div class="card-header">
+                        <h2><span class="step-badge">2</span> 活动要素总结</h2>
+                        <div class="btn-group">
+                            <button class="btn btn-secondary" onclick="regenerateElements()">🔄 重新生成</button>
+                            <button class="collapse-btn" onclick="toggleSection('step2')">▼</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="elementsContent">
+                            <div class="empty-state">
+                                <p>请先在上方输入活动信息并点击生成</p>
+                            </div>
+                        </div>
+                        <div style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center;">
+                            <span class="status-indicator pending" id="step2Status">待生成</span>
+                            <button class="btn btn-primary" onclick="generatePlan()" id="btnGenPlan" disabled>📋 AI 生成活动规划</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: 活动规划表格 -->
+                <div class="card" id="step3">
+                    <div class="card-header">
+                        <h2><span class="step-badge">3</span> 活动规划表格</h2>
+                        <div class="btn-group">
+                            <button class="btn btn-secondary" onclick="regeneratePlan()">🔄 重新生成</button>
+                            <button class="collapse-btn" onclick="toggleSection('step3')">▼</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="planContent">
+                            <div class="empty-state">
+                                <p>请先完成活动要素总结</p>
+                            </div>
+                        </div>
+                        <div style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center;">
+                            <span class="status-indicator pending" id="step3Status">待生成</span>
+                            <button class="btn btn-primary" onclick="generateFlow()" id="btnGenFlow" disabled>📊 AI 生成活动流程</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 4: 活动流程表格 -->
+                <div class="card" id="step4">
+                    <div class="card-header">
+                        <h2><span class="step-badge">4</span> 活动流程表格</h2>
+                        <div class="btn-group">
+                            <button class="btn btn-secondary" onclick="regenerateFlow()">🔄 重新生成</button>
+                            <button class="btn btn-success" onclick="addFlowRow()">+ 添加行</button>
+                            <button class="collapse-btn" onclick="toggleSection('step4')">▼</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="flowContent">
+                            <div class="empty-state">
+                                <p>请先完成活动规划</p>
+                            </div>
+                        </div>
+                        <div style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center;">
+                            <span class="status-indicator pending" id="step4Status">待生成</span>
+                            <button class="btn btn-primary" onclick="generatePPT()" id="btnGenPPT" disabled>🎯 AI 生成PPT主持稿</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 5: PPT和主持人稿 -->
+                <div class="card" id="step5">
+                    <div class="card-header">
+                        <h2><span class="step-badge">5</span> PPT与主持人稿</h2>
+                        <div class="btn-group">
+                            <button class="btn btn-secondary" onclick="regeneratePPT()">🔄 重新生成</button>
+                            <button class="btn btn-success" onclick="addPPTRow()">+ 添加页</button>
+                            <button class="collapse-btn" onclick="toggleSection('step5')">▼</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="pptContent">
+                            <div class="empty-state">
+                                <p>请先完成活动流程</p>
+                            </div>
+                        </div>
+                        <div style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center;">
+                            <span class="status-indicator pending" id="step5Status">待生成</span>
+                            <button class="btn btn-success" onclick="exportAll()">📥 导出全部内容</button>
+                        </div>
+                    </div>
+                </div>
+            </main>
         </div>
-        <div class="card-body">
-            <textarea id="pptOutput" placeholder="这里会生成 PPT 每一页的标题、要点，以及对应的主持人口播稿，可直接复制到文案或 Keynote / PPT 中"></textarea>
-        </div>
-    </section>
-</div>
+    </div>
 
-<script>
-    const API_URL = "/api/chat";
-    let activityData = {
-        input: '',
-        elements: null,
-        plan: null,
-        flow: null,
-        ppt: null
-    };
+    <script>
+        // API 配置 - 使用本地代理端点
+        const API_URL = "/api/chat";
 
-    function showToast(message, type = 'info') {
-        const t = document.createElement('div');
-        t.className = `toast ${type}`;
-        t.textContent = message;
-        document.body.appendChild(t);
-        setTimeout(() => t.remove(), 2800);
-    }
+        // 全局数据
+        let currentActivityId = null;
+        let activityData = {
+            input: '',
+            elements: null,
+            plan: null,
+            flow: null,
+            ppt: null,
+            createdAt: null,
+            updatedAt: null,
+            title: '未命名活动'
+        };
 
-    async function callAI(prompt) {
-        const resp = await fetch(API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt })
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadHistoryList();
+            setupAutoSave();
+            loadApiKey();
         });
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const data = await resp.json();
-        if (data.error) throw new Error(data.error);
-        return data.content || '';
-    }
 
-    function updateStatus(stepId, status) {
-        const el = document.getElementById(stepId + 'Status');
-        if (!el) return;
-        el.className = 'status-indicator';
-        if (status === 'completed') {
-            el.classList.add('completed');
-            el.textContent = '已完成';
-        } else if (status === 'error') {
-            el.classList.add('error');
-            el.textContent = '生成失败';
-        } else {
-            el.textContent = '待生成';
-        }
-    }
-
-    function parseTableFromAI(text) {
-        text = text.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
-        const lines = text.split('\n').filter(l => l.trim());
-        const rows = [];
-        for (const line of lines) {
-            if (line.includes('|')) {
-                const cells = line.split('|').map(c => c.trim()).filter(c => c && !/^[-:]+$/.test(c));
-                if (cells.length) rows.push(cells);
+        // 加载已保存的 API KEY
+        function loadApiKey() {
+            const savedKey = localStorage.getItem('modelscope_api_key');
+            if (savedKey) {
+                document.getElementById('apiKeyInputSection').style.display = 'none';
+                document.getElementById('apiKeySavedSection').style.display = 'block';
             }
         }
-        return rows;
-    }
 
-    function renderEditableTable(containerId, data, onChangeCell, headerIsFirstRow = true) {
-        const container = document.getElementById(containerId);
-        if (!data || !data.length) {
-            container.innerHTML = '<p style="color:#777;font-size:0.9rem;">暂无数据</p>';
-            return;
+        // 保存 API KEY
+        function saveApiKey() {
+            const apiKey = document.getElementById('apiKeyInput').value.trim();
+            if (!apiKey) {
+                showToast('请输入 API KEY', 'error');
+                return;
+            }
+            localStorage.setItem('modelscope_api_key', apiKey);
+            document.getElementById('apiKeyInputSection').style.display = 'none';
+            document.getElementById('apiKeySavedSection').style.display = 'block';
+            document.getElementById('apiKeyInput').value = '';
+            showToast('API KEY 已保存', 'success');
         }
-        let html = '<div class="table-container"><table>';
-        data.forEach((row, r) => {
-            html += '<tr>';
-            row.forEach((cell, c) => {
-                if (headerIsFirstRow && r === 0) {
-                    html += `<th>${cell}</th>`;
-                } else {
-                    html += `<td contenteditable="true" data-row="${r}" data-col="${c}">${cell}</td>`;
+
+        // 显示 API KEY 输入框
+        function showApiKeyInput() {
+            document.getElementById('apiKeyInputSection').style.display = 'block';
+            document.getElementById('apiKeySavedSection').style.display = 'none';
+        }
+
+        // 调用 AI API
+        async function callAI(prompt) {
+            try {
+                // 获取用户设置的 API KEY
+                const userApiKey = localStorage.getItem('modelscope_api_key');
+                
+                const headers = {
+                    "Content-Type": "application/json"
+                };
+                
+                // 如果用户设置了 API KEY，添加到请求头
+                if (userApiKey) {
+                    headers["X-API-Key"] = userApiKey;
+                }
+
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    headers: headers,
+                    body: JSON.stringify({
+                        prompt: prompt
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    if (response.status === 401 || response.status === 403) {
+                        throw new Error('API KEY 无效或已过期，请检查设置');
+                    }
+                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                return data.content;
+            } catch (error) {
+                console.error('AI API Error:', error);
+                throw error;
+            }
+        }
+
+        // 显示 Toast 消息
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // 显示加载状态
+        function showLoading(containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = `
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <span>AI 正在生成中，请稍候...</span>
+                </div>
+            `;
+        }
+
+        // 更新进度条
+        function updateProgress(step) {
+            document.querySelectorAll('.progress-step').forEach((el, index) => {
+                el.classList.remove('active', 'completed');
+                if (index + 1 < step) {
+                    el.classList.add('completed');
+                } else if (index + 1 === step) {
+                    el.classList.add('active');
                 }
             });
-            html += '</tr>';
-        });
-        html += '</table></div>';
-        container.innerHTML = html;
-        container.querySelectorAll('td[contenteditable="true"]').forEach(td => {
-            td.addEventListener('blur', () => {
-                const r = parseInt(td.dataset.row, 10);
-                const c = parseInt(td.dataset.col, 10);
-                onChangeCell(r, c, td.textContent.trim());
-            });
-        });
-    }
-
-    async function onGenerateElements() {
-        const input = document.getElementById('activityInput').value.trim();
-        if (!input) {
-            showToast('请先输入活动基本信息', 'error');
-            return;
         }
-        activityData.input = input;
-        updateStatus('step1', 'completed');
-        updateStatus('step2', 'pending');
-        document.getElementById('elementsContent').innerHTML = '<p style="color:#666;">AI 正在提取活动要素...</p>';
-        try {
-            const prompt = `你是一个活动策划专家，请基于以下直播/活动信息，整理一张要素表。\\n\\n` +
-                `用户输入：\\n${input}\\n\\n` +
-                `以 Markdown 表格输出，第一列为"字段"，第二列为"内容"，` +
-                `字段建议包含：活动目标、核心产品/项目、目标受众、时间与时长、形式与渠道、互动设计、成功指标等。`;
-            const result = await callAI(prompt);
-            const table = parseTableFromAI(result);
-            if (!table.length) {
-                activityData.elements = [
-                    ['字段', '内容'],
-                    ['活动目标', '待补充'],
-                    ['核心产品/项目', '待补充'],
-                    ['目标受众', '待补充'],
-                    ['时间与时长', '待补充'],
-                    ['形式与渠道', '待补充'],
-                    ['互动设计', '待补充'],
-                    ['成功指标', '待补充']
-                ];
-            } else {
-                activityData.elements = table;
+
+        // 更新状态指示器
+        function updateStatus(stepId, status) {
+            const statusEl = document.getElementById(stepId + 'Status');
+            statusEl.className = 'status-indicator';
+            if (status === 'completed') {
+                statusEl.textContent = '已完成';
+                statusEl.classList.add('completed');
+            } else if (status === 'pending') {
+                statusEl.textContent = '待生成';
+                statusEl.classList.add('pending');
+            } else if (status === 'error') {
+                statusEl.textContent = '生成失败';
+                statusEl.classList.add('error');
             }
-            renderEditableTable('elementsContent', activityData.elements, (r, c, v) => {
-                activityData.elements[r][c] = v;
+        }
+
+        // 折叠/展开区块
+        function toggleSection(sectionId) {
+            document.getElementById(sectionId).classList.toggle('section-collapsed');
+        }
+
+        // 解析 AI 返回的表格数据
+        function parseTableFromAI(text, type) {
+            // 清理思考标记
+            text = text.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+            
+            const lines = text.split('\n').filter(line => line.trim());
+            const data = [];
+            
+            for (const line of lines) {
+                if (line.includes('|')) {
+                    const cells = line.split('|').map(cell => cell.trim()).filter(cell => cell && !cell.match(/^[-:]+$/));
+                    if (cells.length > 0) {
+                        data.push(cells);
+                    }
+                }
+            }
+            
+            return data;
+        }
+
+        // 生成活动要素
+        async function generateElements() {
+            const input = document.getElementById('activityInput').value.trim();
+            if (!input) {
+                showToast('请先输入活动基本信息', 'error');
+                return;
+            }
+
+            activityData.input = input;
+            showLoading('elementsContent');
+            updateProgress(2);
+
+            const prompt = `你是一个专业的活动策划专家。请根据以下活动信息，提取和总结活动要素。
+
+用户输入的活动信息：
+${input}
+
+请以 Markdown 表格格式输出，第一列为"字段"，第二列为"内容"。必须包含以下字段：
+1. 活动目标（格式：帮助xx人解决xx问题）
+2. 活动相关产品
+3. 活动时长建议
+4. 目标受众画像
+5. 互动设计（如答疑、抽奖等）
+6. 参考资料（其他参考信息和链接）
+
+如果某些信息用户没有提供，请根据上下文合理推断。直接输出表格，不要有其他多余内容。`;
+
+            try {
+                const result = await callAI(prompt);
+                const tableData = parseTableFromAI(result, 'elements');
+                
+                if (tableData.length < 2) {
+                    activityData.elements = [
+                        ['字段', '内容'],
+                        ['活动目标', '待补充'],
+                        ['活动相关产品', '待补充'],
+                        ['活动时长建议', '待补充'],
+                        ['目标受众画像', '待补充'],
+                        ['互动设计', '待补充'],
+                        ['参考资料', '待补充']
+                    ];
+                } else {
+                    activityData.elements = tableData;
+                }
+                
+                renderElementsTable();
+                updateStatus('step2', 'completed');
+                document.getElementById('btnGenPlan').disabled = false;
+                
+                // 提取标题
+                const titleRow = activityData.elements.find(row => 
+                    row[0] && (row[0].includes('目标') || row[0].includes('主题'))
+                );
+                if (titleRow && titleRow[1]) {
+                    activityData.title = titleRow[1].substring(0, 30);
+                }
+                
+                saveCurrentActivity();
+                showToast('活动要素生成成功', 'success');
+            } catch (error) {
+                document.getElementById('elementsContent').innerHTML = `
+                    <div class="empty-state" style="color: #ff4757;">
+                        <p>生成失败：${error.message}</p>
+                        <button class="btn btn-secondary" onclick="generateElements()">重试</button>
+                    </div>
+                `;
+                updateStatus('step2', 'error');
+                showToast('生成失败，请重试', 'error');
+            }
+        }
+
+        // 渲染活动要素表格
+        function renderElementsTable() {
+            const container = document.getElementById('elementsContent');
+            if (!activityData.elements || activityData.elements.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>暂无数据</p></div>';
+                return;
+            }
+
+            let html = '<div class="table-container"><table>';
+            activityData.elements.forEach((row, rowIndex) => {
+                html += '<tr>';
+                row.forEach((cell, cellIndex) => {
+                    if (rowIndex === 0) {
+                        html += `<th>${cell}</th>`;
+                    } else {
+                        const isFieldCell = cellIndex === 0;
+                        html += `<td class="${isFieldCell ? 'field-cell' : 'value-cell'}" 
+                                    contenteditable="true" 
+                                    data-row="${rowIndex}" 
+                                    data-col="${cellIndex}"
+                                    onblur="updateElementsCell(${rowIndex}, ${cellIndex}, this.textContent)">${cell}</td>`;
+                    }
+                });
+                html += '</tr>';
             });
-            updateStatus('step2', 'completed');
-            document.getElementById('btnGenPlan').disabled = false;
-            showToast('活动要素生成完成', 'success');
-        } catch (e) {
-            console.error(e);
-            document.getElementById('elementsContent').innerHTML = `<p style="color:#c62828;">生成失败：${e.message}</p>`;
-            updateStatus('step2', 'error');
-            showToast('生成要素失败，请稍后重试', 'error');
+            html += '</table></div>';
+            container.innerHTML = html;
         }
-    }
 
-    async function onGeneratePlan() {
-        if (!activityData.elements) {
-            showToast('请先生成活动要素', 'error');
-            return;
+        // 更新活动要素单元格
+        function updateElementsCell(row, col, value) {
+            if (activityData.elements && activityData.elements[row]) {
+                activityData.elements[row][col] = value;
+                saveCurrentActivity();
+            }
         }
-        updateStatus('step3', 'pending');
-        document.getElementById('planContent').innerHTML = '<p style="color:#666;">AI 正在生成活动规划...</p>';
-        const elementsText = activityData.elements.map(r => r.join(' | ')).join('\n');
-        const prompt = `你现在是一个直播活动策划 PM，请根据下面的活动要素表，生成一个活动规划表：\\n\\n${elementsText}\\n\\n` +
-            `以 Markdown 表格形式输出，至少包含这些列："类别"、"字段"、"内容"。` +
-            `类别至少包括：核心信息、人力安排、时间节奏、传播与渠道、风控与预案。`
-        try {
-            const result = await callAI(prompt);
-            const table = parseTableFromAI(result);
-            if (!table.length) throw new Error('未解析到表格');
-            activityData.plan = table;
-            renderEditableTable('planContent', activityData.plan, (r, c, v) => {
-                activityData.plan[r][c] = v;
+
+        // 重新生成活动要素
+        function regenerateElements() {
+            generateElements();
+        }
+
+        // 生成活动规划
+        async function generatePlan() {
+            if (!activityData.elements) {
+                showToast('请先生成活动要素', 'error');
+                return;
+            }
+
+            showLoading('planContent');
+            updateProgress(3);
+
+            const elementsText = activityData.elements.map(row => row.join(' | ')).join('\n');
+
+            const prompt = `你是一个专业的活动策划专家。请根据以下活动要素，生成详细的活动规划表格。
+
+活动要素：
+${elementsText}
+
+请以 Markdown 表格格式输出，表格有三列：类别、字段、内容。必须包含以下信息：
+
+1. 核心信息类别：
+   - 活动品牌/系列
+   - 活动主题
+   - 活动目标
+   - 内容概况
+
+2. 人员安排类别：
+   - 讲师
+   - 主持人
+   - 志愿者
+   - PM
+
+3. 活动时间类别：
+   - 活动宣传周期
+   - 活动时间
+   - 活动时长
+
+4. 活动形式类别：
+   - 活动形式
+   - 活动地点
+   - 活动地址
+   - 联合平台
+
+5. 相关文档类别：
+   - 相关文档链接
+
+直接输出表格，不要有其他多余内容。`;
+
+            try {
+                const result = await callAI(prompt);
+                const tableData = parseTableFromAI(result, 'plan');
+                
+                if (tableData.length < 2) {
+                    activityData.plan = [
+                        ['类别', '字段', '内容'],
+                        ['核心信息', '活动品牌/系列', '待补充'],
+                        ['核心信息', '活动主题', '待补充'],
+                        ['核心信息', '活动目标', '待补充'],
+                        ['核心信息', '内容概况', '待补充'],
+                        ['人员安排', '讲师', '待补充'],
+                        ['人员安排', '主持人', '待补充'],
+                        ['人员安排', '志愿者', '待补充'],
+                        ['人员安排', 'PM', '待补充'],
+                        ['活动时间', '活动宣传周期', '待补充'],
+                        ['活动时间', '活动时间', '待补充'],
+                        ['活动时间', '活动时长', '待补充'],
+                        ['活动形式', '活动形式', '待补充'],
+                        ['活动形式', '活动地点', '待补充'],
+                        ['活动形式', '活动地址', '待补充'],
+                        ['活动形式', '联合平台', '待补充'],
+                        ['相关文档', '文档链接', '待补充']
+                    ];
+                } else {
+                    activityData.plan = tableData;
+                }
+                
+                renderPlanTable();
+                updateStatus('step3', 'completed');
+                document.getElementById('btnGenFlow').disabled = false;
+                saveCurrentActivity();
+                showToast('活动规划生成成功', 'success');
+            } catch (error) {
+                document.getElementById('planContent').innerHTML = `
+                    <div class="empty-state" style="color: #ff4757;">
+                        <p>生成失败：${error.message}</p>
+                        <button class="btn btn-secondary" onclick="generatePlan()">重试</button>
+                    </div>
+                `;
+                updateStatus('step3', 'error');
+                showToast('生成失败，请重试', 'error');
+            }
+        }
+
+        // 渲染活动规划表格
+        function renderPlanTable() {
+            const container = document.getElementById('planContent');
+            if (!activityData.plan || activityData.plan.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>暂无数据</p></div>';
+                return;
+            }
+
+            // 计算需要合并的单元格（第一列类别）
+            const rowspanMap = {};
+            let currentCategory = null;
+            let startRow = -1;
+            
+            for (let i = 1; i < activityData.plan.length; i++) {
+                const category = activityData.plan[i][0];
+                if (category !== currentCategory) {
+                    if (startRow !== -1) {
+                        rowspanMap[startRow] = i - startRow;
+                    }
+                    currentCategory = category;
+                    startRow = i;
+                }
+            }
+            // 处理最后一组
+            if (startRow !== -1) {
+                rowspanMap[startRow] = activityData.plan.length - startRow;
+            }
+
+            let html = '<div class="table-container scrollable"><table><thead>';
+            // 表头
+            html += '<tr>';
+            activityData.plan[0].forEach(cell => {
+                html += `<th>${cell}</th>`;
             });
-            updateStatus('step3', 'completed');
-            document.getElementById('btnGenFlow').disabled = false;
-            showToast('活动规划生成完成', 'success');
-        } catch (e) {
-            console.error(e);
-            document.getElementById('planContent').innerHTML = `<p style="color:#c62828;">生成失败：${e.message}</p>`;
-            updateStatus('step3', 'error');
-            showToast('生成规划失败，请稍后重试', 'error');
+            html += '<th>操作</th></tr></thead><tbody>';
+            
+            // 数据行
+            for (let rowIndex = 1; rowIndex < activityData.plan.length; rowIndex++) {
+                const row = activityData.plan[rowIndex];
+                html += '<tr>';
+                
+                row.forEach((cell, cellIndex) => {
+                    if (cellIndex === 0) {
+                        // 第一列：类别列，需要合并
+                        if (rowspanMap[rowIndex]) {
+                            html += `<td class="field-cell" 
+                                        rowspan="${rowspanMap[rowIndex]}"
+                                        contenteditable="true" 
+                                        data-row="${rowIndex}" 
+                                        data-col="${cellIndex}"
+                                        onblur="updatePlanCategoryCell(${rowIndex}, ${rowspanMap[rowIndex]}, this.textContent)"
+                                        style="vertical-align: middle; text-align: center; font-weight: bold;">${cell}</td>`;
+                        }
+                        // 如果不是合并起始行，则跳过这个单元格
+                    } else {
+                        const isFieldCell = cellIndex < 2;
+                        html += `<td class="${isFieldCell ? 'field-cell' : 'value-cell'}" 
+                                    contenteditable="true" 
+                                    data-row="${rowIndex}" 
+                                    data-col="${cellIndex}"
+                                    onblur="updatePlanCell(${rowIndex}, ${cellIndex}, this.textContent)">${cell}</td>`;
+                    }
+                });
+                
+                // 添加操作按钮
+                html += `<td class="row-actions">
+                    <button class="btn-delete-row" onclick="deletePlanRow(${rowIndex})">删除</button>
+                </td>`;
+                html += '</tr>';
+            }
+            
+            html += '</tbody></table></div>';
+            html += '<button class="btn btn-success" style="margin-top: 10px;" onclick="addPlanRow()">+ 添加行</button>';
+            container.innerHTML = html;
         }
-    }
 
-    async function onGenerateFlow() {
-        if (!activityData.plan) {
-            showToast('请先生成活动规划', 'error');
-            return;
+        // 更新活动规划类别单元格（合并单元格）
+        function updatePlanCategoryCell(startRow, rowspan, value) {
+            if (!activityData.plan) return;
+            for (let i = startRow; i < startRow + rowspan && i < activityData.plan.length; i++) {
+                activityData.plan[i][0] = value;
+            }
+            saveCurrentActivity();
         }
-        updateStatus('step4', 'pending');
-        document.getElementById('flowContent').innerHTML = '<p style="color:#666;">AI 正在生成直播流程...</p>';
-        const planText = activityData.plan.map(r => r.join(' | ')).join('\n');
-        const prompt = `根据下面的活动规划表，为一次直播生成详细流程表（时间轴）：\\n\\n${planText}\\n\\n` +
-            `以 Markdown 表格形式输出，建议列包括："阶段"、"起止时间"、"环节名称"、"负责人/参与角色"、"目标"、"备注"。`;
-        try {
-            const result = await callAI(prompt);
-            const table = parseTableFromAI(result);
-            if (!table.length) throw new Error('未解析到表格');
-            activityData.flow = table;
-            renderEditableTable('flowContent', activityData.flow, (r, c, v) => {
-                activityData.flow[r][c] = v;
+
+        // 更新活动规划单元格
+        function updatePlanCell(row, col, value) {
+            if (activityData.plan && activityData.plan[row]) {
+                activityData.plan[row][col] = value;
+                saveCurrentActivity();
+            }
+        }
+
+        // 添加活动规划行
+        function addPlanRow() {
+            if (!activityData.plan) return;
+            activityData.plan.push(['新类别', '新字段', '待补充']);
+            renderPlanTable();
+            saveCurrentActivity();
+        }
+
+        // 删除活动规划行
+        function deletePlanRow(rowIndex) {
+            if (!activityData.plan || rowIndex < 1) return;
+            activityData.plan.splice(rowIndex, 1);
+            renderPlanTable();
+            saveCurrentActivity();
+        }
+
+        // 重新生成活动规划
+        function regeneratePlan() {
+            generatePlan();
+        }
+
+        // 生成活动流程
+        async function generateFlow() {
+            if (!activityData.plan) {
+                showToast('请先生成活动规划', 'error');
+                return;
+            }
+
+            showLoading('flowContent');
+            updateProgress(4);
+
+            const elementsText = activityData.elements ? activityData.elements.map(row => row.join(' | ')).join('\n') : '';
+            const planText = activityData.plan.map(row => row.join(' | ')).join('\n');
+
+            const prompt = `你是一个专业的活动策划专家。请根据以下活动要素和规划，生成详细的活动流程表格。
+
+活动要素：
+${elementsText}
+
+活动规划：
+${planText}
+
+请以 Markdown 表格格式输出活动流程，第一行为表头。必须包含以下列：
+- 时间（具体时间段，如 09:00-09:15）
+- 环节（环节名称）
+- 目标（该环节要达成的目标）
+- 内容（具体内容描述）
+- 注意事项
+- 负责人
+
+请根据活动时长合理安排各环节时间，确保流程完整连贯。直接输出表格，不要有其他多余内容。`;
+
+            try {
+                const result = await callAI(prompt);
+                const tableData = parseTableFromAI(result, 'flow');
+                
+                if (tableData.length < 2) {
+                    activityData.flow = [
+                        ['时间', '环节', '目标', '内容', '注意事项', '负责人'],
+                        ['09:00-09:10', '签到入场', '参会者顺利入场', '引导签到，发放资料', '提前准备签到表', '志愿者'],
+                        ['09:10-09:15', '开场介绍', '活动正式开始', '主持人介绍活动背景', '控制时间', '主持人'],
+                        ['09:15-10:00', '主题分享', '传递核心内容', '讲师进行主题演讲', '注意互动', '讲师'],
+                        ['10:00-10:30', '互动答疑', '解答疑问', 'Q&A环节', '控制提问时间', '主持人'],
+                        ['10:30-10:45', '抽奖环节', '活跃气氛', '进行抽奖活动', '准备奖品', '主持人'],
+                        ['10:45-11:00', '总结收尾', '圆满结束', '总结要点，感谢参与', '收集反馈', '主持人']
+                    ];
+                } else {
+                    activityData.flow = tableData;
+                }
+                
+                renderFlowTable();
+                updateStatus('step4', 'completed');
+                document.getElementById('btnGenPPT').disabled = false;
+                saveCurrentActivity();
+                showToast('活动流程生成成功', 'success');
+            } catch (error) {
+                document.getElementById('flowContent').innerHTML = `
+                    <div class="empty-state" style="color: #ff4757;">
+                        <p>生成失败：${error.message}</p>
+                        <button class="btn btn-secondary" onclick="generateFlow()">重试</button>
+                    </div>
+                `;
+                updateStatus('step4', 'error');
+                showToast('生成失败，请重试', 'error');
+            }
+        }
+
+        // 渲染活动流程表格
+        function renderFlowTable() {
+            const container = document.getElementById('flowContent');
+            if (!activityData.flow || activityData.flow.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>暂无数据</p></div>';
+                return;
+            }
+
+            let html = '<div class="table-container"><table>';
+            activityData.flow.forEach((row, rowIndex) => {
+                html += '<tr>';
+                row.forEach((cell, cellIndex) => {
+                    if (rowIndex === 0) {
+                        html += `<th>${cell}</th>`;
+                    } else {
+                        html += `<td contenteditable="true" 
+                                    data-row="${rowIndex}" 
+                                    data-col="${cellIndex}"
+                                    onblur="updateFlowCell(${rowIndex}, ${cellIndex}, this.textContent)">${cell}</td>`;
+                    }
+                });
+                // 添加操作按钮
+                if (rowIndex > 0) {
+                    html += `<td class="row-actions">
+                        <button class="btn-add-row" onclick="insertFlowRow(${rowIndex})">插入</button>
+                        <button class="btn-delete-row" onclick="deleteFlowRow(${rowIndex})">删除</button>
+                    </td>`;
+                } else {
+                    html += '<th>操作</th>';
+                }
+                html += '</tr>';
             });
-            updateStatus('step4', 'completed');
-            document.getElementById('btnGenPPT').disabled = false;
-            showToast('直播流程生成完成', 'success');
-        } catch (e) {
-            console.error(e);
-            document.getElementById('flowContent').innerHTML = `<p style="color:#c62828;">生成失败：${e.message}</p>`;
-            updateStatus('step4', 'error');
-            showToast('生成流程失败，请稍后重试', 'error');
+            html += '</table></div>';
+            container.innerHTML = html;
         }
-    }
 
-    async function onGeneratePPT() {
-        if (!activityData.flow) {
-            showToast('请先生成直播流程', 'error');
-            return;
+        // 更新活动流程单元格
+        function updateFlowCell(row, col, value) {
+            if (activityData.flow && activityData.flow[row]) {
+                activityData.flow[row][col] = value;
+                saveCurrentActivity();
+            }
         }
-        updateStatus('step5', 'pending');
-        const flowText = activityData.flow.map(r => r.join(' | ')).join('\n');
-        const prompt = `你现在是直播活动的内容策划，请基于以下直播流程表，生成 PPT 页面大纲和主持人串词：\\n\\n${flowText}\\n\\n` +
-            `请直接以 Markdown 分级标题的形式输出：每一页 PPT 用 "## 第X页：标题" 表示，下面分点列出该页要呈现的内容；` +
-            `并在每个关键环节后补充少量主持人口播稿建议（用"主持人口播示例："开头）。`;
-        try {
-            const result = await callAI(prompt);
-            activityData.ppt = result;
-            document.getElementById('pptOutput').value = result;
-            updateStatus('step5', 'completed');
-            showToast('PPT 大纲与主持稿生成完成', 'success');
-        } catch (e) {
-            console.error(e);
-            updateStatus('step5', 'error');
-            showToast('生成 PPT 大纲失败，请稍后重试', 'error');
-        }
-    }
 
-    document.getElementById('btnGenElements').addEventListener('click', onGenerateElements);
-    document.getElementById('btnGenPlan').addEventListener('click', onGeneratePlan);
-    document.getElementById('btnGenFlow').addEventListener('click', onGenerateFlow);
-    document.getElementById('btnGenPPT').addEventListener('click', onGeneratePPT);
-</script>
+        // 添加活动流程行
+        function addFlowRow() {
+            if (!activityData.flow) {
+                activityData.flow = [['时间', '环节', '目标', '内容', '注意事项', '负责人']];
+            }
+            activityData.flow.push(['00:00-00:00', '新环节', '待补充', '待补充', '待补充', '待补充']);
+            renderFlowTable();
+            saveCurrentActivity();
+        }
+
+        // 插入活动流程行
+        function insertFlowRow(afterIndex) {
+            if (!activityData.flow) return;
+            activityData.flow.splice(afterIndex + 1, 0, ['00:00-00:00', '新环节', '待补充', '待补充', '待补充', '待补充']);
+            renderFlowTable();
+            saveCurrentActivity();
+        }
+
+        // 删除活动流程行
+        function deleteFlowRow(rowIndex) {
+            if (!activityData.flow || rowIndex < 1) return;
+            activityData.flow.splice(rowIndex, 1);
+            renderFlowTable();
+            saveCurrentActivity();
+        }
+
+        // 重新生成活动流程
+        function regenerateFlow() {
+            generateFlow();
+        }
+
+        // 生成PPT主持稿
+        async function generatePPT() {
+            if (!activityData.flow) {
+                showToast('请先生成活动流程', 'error');
+                return;
+            }
+
+            showLoading('pptContent');
+            updateProgress(5);
+
+            const flowText = activityData.flow.map(row => row.join(' | ')).join('\n');
+
+            const prompt = `你是一个专业的活动策划专家。请根据以下活动流程，生成PPT大纲和主持人稿。
+
+活动流程：
+${flowText}
+
+请以 Markdown 表格格式输出，第一行为表头。列包括：
+- 页码（P1, P2, P3...）
+- 内容标题
+- 目标
+- 参考主持词（主持人说的话，要自然流畅，包含开场白、过渡语、结束语等）
+
+每个重要环节对应1-2页PPT，确保内容完整覆盖整个活动流程。主持词要专业、亲切、有感染力。直接输出表格，不要有其他多余内容。`;
+
+            try {
+                const result = await callAI(prompt);
+                const tableData = parseTableFromAI(result, 'ppt');
+                
+                if (tableData.length < 2) {
+                    activityData.ppt = [
+                        ['页码', '内容标题', '目标', '参考主持词'],
+                        ['P1', '封面页', '展示活动主题', '各位嘉宾，大家好！欢迎参加本次活动...'],
+                        ['P2', '活动介绍', '介绍活动背景', '首先，让我为大家介绍一下今天活动的背景...'],
+                        ['P3', '嘉宾介绍', '介绍主讲人', '接下来，有请今天的主讲嘉宾...'],
+                        ['P4', '主题内容', '核心分享', '现在进入我们的主题分享环节...'],
+                        ['P5', '互动环节', '答疑互动', '感谢精彩的分享！现在进入互动答疑环节...'],
+                        ['P6', '抽奖环节', '活跃气氛', '激动人心的时刻到了！让我们进入抽奖环节...'],
+                        ['P7', '总结页', '活动收尾', '今天的活动即将结束，感谢大家的参与...'],
+                        ['P8', '结束页', '圆满结束', '再次感谢各位的到来，期待下次相见！']
+                    ];
+                } else {
+                    activityData.ppt = tableData;
+                }
+                
+                renderPPTTable();
+                updateStatus('step5', 'completed');
+                saveCurrentActivity();
+                showToast('PPT主持稿生成成功', 'success');
+            } catch (error) {
+                document.getElementById('pptContent').innerHTML = `
+                    <div class="empty-state" style="color: #ff4757;">
+                        <p>生成失败：${error.message}</p>
+                        <button class="btn btn-secondary" onclick="generatePPT()">重试</button>
+                    </div>
+                `;
+                updateStatus('step5', 'error');
+                showToast('生成失败，请重试', 'error');
+            }
+        }
+
+        // 渲染PPT主持稿表格
+        function renderPPTTable() {
+            const container = document.getElementById('pptContent');
+            if (!activityData.ppt || activityData.ppt.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>暂无数据</p></div>';
+                return;
+            }
+
+            let html = '<div class="table-container"><table>';
+            activityData.ppt.forEach((row, rowIndex) => {
+                html += '<tr>';
+                row.forEach((cell, cellIndex) => {
+                    if (rowIndex === 0) {
+                        html += `<th>${cell}</th>`;
+                    } else {
+                        const cellClass = cellIndex === 0 ? 'field-cell' : '';
+                        html += `<td class="${cellClass}" contenteditable="true" 
+                                    data-row="${rowIndex}" 
+                                    data-col="${cellIndex}"
+                                    onblur="updatePPTCell(${rowIndex}, ${cellIndex}, this.textContent)">${cell}</td>`;
+                    }
+                });
+                // 添加操作按钮
+                if (rowIndex > 0) {
+                    html += `<td class="row-actions">
+                        <button class="btn-add-row" onclick="insertPPTRow(${rowIndex})">插入</button>
+                        <button class="btn-delete-row" onclick="deletePPTRow(${rowIndex})">删除</button>
+                    </td>`;
+                } else {
+                    html += '<th>操作</th>';
+                }
+                html += '</tr>';
+            });
+            html += '</table></div>';
+            container.innerHTML = html;
+        }
+
+        // 更新PPT单元格
+        function updatePPTCell(row, col, value) {
+            if (activityData.ppt && activityData.ppt[row]) {
+                activityData.ppt[row][col] = value;
+                saveCurrentActivity();
+            }
+        }
+
+        // 添加PPT行
+        function addPPTRow() {
+            if (!activityData.ppt) {
+                activityData.ppt = [['页码', '内容标题', '目标', '参考主持词']];
+            }
+            const lastPage = activityData.ppt.length;
+            activityData.ppt.push([`P${lastPage}`, '新页面', '待补充', '待补充主持词...']);
+            renderPPTTable();
+            saveCurrentActivity();
+        }
+
+        // 插入PPT行
+        function insertPPTRow(afterIndex) {
+            if (!activityData.ppt) return;
+            activityData.ppt.splice(afterIndex + 1, 0, ['Px', '新页面', '待补充', '待补充主持词...']);
+            // 重新编号
+            for (let i = 1; i < activityData.ppt.length; i++) {
+                activityData.ppt[i][0] = `P${i}`;
+            }
+            renderPPTTable();
+            saveCurrentActivity();
+        }
+
+        // 删除PPT行
+        function deletePPTRow(rowIndex) {
+            if (!activityData.ppt || rowIndex < 1) return;
+            activityData.ppt.splice(rowIndex, 1);
+            // 重新编号
+            for (let i = 1; i < activityData.ppt.length; i++) {
+                activityData.ppt[i][0] = `P${i}`;
+            }
+            renderPPTTable();
+            saveCurrentActivity();
+        }
+
+        // 重新生成PPT主持稿
+        function regeneratePPT() {
+            generatePPT();
+        }
+
+        // 导出全部内容
+        function exportAll() {
+            let content = `# 活动策划方案：${activityData.title}\n\n`;
+            content += `生成时间：${new Date().toLocaleString()}\n\n`;
+
+            if (activityData.input) {
+                content += `## 原始输入信息\n\n${activityData.input}\n\n`;
+            }
+
+            if (activityData.elements && activityData.elements.length > 0) {
+                content += `## 活动要素总结\n\n`;
+                content += tableToMarkdown(activityData.elements);
+                content += '\n\n';
+            }
+
+            if (activityData.plan && activityData.plan.length > 0) {
+                content += `## 活动规划表格\n\n`;
+                content += tableToMarkdown(activityData.plan);
+                content += '\n\n';
+            }
+
+            if (activityData.flow && activityData.flow.length > 0) {
+                content += `## 活动流程表格\n\n`;
+                content += tableToMarkdown(activityData.flow);
+                content += '\n\n';
+            }
+
+            if (activityData.ppt && activityData.ppt.length > 0) {
+                content += `## PPT与主持人稿\n\n`;
+                content += tableToMarkdown(activityData.ppt);
+                content += '\n\n';
+            }
+
+            // 下载文件
+            const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `活动策划_${activityData.title}_${new Date().toISOString().split('T')[0]}.md`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showToast('导出成功', 'success');
+        }
+
+        // 表格转 Markdown
+        function tableToMarkdown(data) {
+            if (!data || data.length === 0) return '';
+            
+            let md = '';
+            data.forEach((row, index) => {
+                md += '| ' + row.join(' | ') + ' |\n';
+                if (index === 0) {
+                    md += '| ' + row.map(() => '---').join(' | ') + ' |\n';
+                }
+            });
+            return md;
+        }
+
+        // 保存当前活动
+        function saveCurrentActivity() {
+            activityData.updatedAt = new Date().toISOString();
+            
+            if (!currentActivityId) {
+                currentActivityId = 'activity_' + Date.now();
+                activityData.createdAt = activityData.updatedAt;
+            }
+
+            const allActivities = JSON.parse(localStorage.getItem('activities') || '{}');
+            allActivities[currentActivityId] = { ...activityData };
+            localStorage.setItem('activities', JSON.stringify(allActivities));
+            
+            loadHistoryList();
+        }
+
+        // 加载历史记录列表
+        function loadHistoryList() {
+            const container = document.getElementById('historyList');
+            const allActivities = JSON.parse(localStorage.getItem('activities') || '{}');
+            const activityIds = Object.keys(allActivities).sort((a, b) => {
+                return new Date(allActivities[b].updatedAt) - new Date(allActivities[a].updatedAt);
+            });
+
+            if (activityIds.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>暂无历史记录</p></div>';
+                return;
+            }
+
+            let html = '';
+            activityIds.forEach(id => {
+                const activity = allActivities[id];
+                const isActive = id === currentActivityId;
+                const date = new Date(activity.updatedAt || activity.createdAt);
+                html += `
+                    <div class="history-item ${isActive ? 'active' : ''}" onclick="loadActivity('${id}')">
+                        <button class="delete-btn" onclick="event.stopPropagation(); deleteActivity('${id}')" title="删除">×</button>
+                        <div class="title">${activity.title || '未命名活动'}</div>
+                        <div class="date">${date.toLocaleString()}</div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        // 加载活动
+        function loadActivity(id) {
+            const allActivities = JSON.parse(localStorage.getItem('activities') || '{}');
+            if (!allActivities[id]) {
+                showToast('活动不存在', 'error');
+                return;
+            }
+
+            currentActivityId = id;
+            activityData = { ...allActivities[id] };
+
+            // 恢复界面
+            document.getElementById('activityInput').value = activityData.input || '';
+            
+            if (activityData.elements) {
+                renderElementsTable();
+                updateStatus('step2', 'completed');
+                document.getElementById('btnGenPlan').disabled = false;
+            }
+            
+            if (activityData.plan) {
+                renderPlanTable();
+                updateStatus('step3', 'completed');
+                document.getElementById('btnGenFlow').disabled = false;
+            }
+            
+            if (activityData.flow) {
+                renderFlowTable();
+                updateStatus('step4', 'completed');
+                document.getElementById('btnGenPPT').disabled = false;
+            }
+            
+            if (activityData.ppt) {
+                renderPPTTable();
+                updateStatus('step5', 'completed');
+            }
+
+            // 更新进度条
+            let step = 1;
+            if (activityData.ppt) step = 5;
+            else if (activityData.flow) step = 4;
+            else if (activityData.plan) step = 3;
+            else if (activityData.elements) step = 2;
+            updateProgress(step);
+
+            loadHistoryList();
+            showToast('已加载活动', 'success');
+        }
+
+        // 删除活动
+        function deleteActivity(id) {
+            if (!confirm('确定要删除这个活动吗？')) return;
+
+            const allActivities = JSON.parse(localStorage.getItem('activities') || '{}');
+            delete allActivities[id];
+            localStorage.setItem('activities', JSON.stringify(allActivities));
+
+            if (id === currentActivityId) {
+                createNewActivity();
+            }
+
+            loadHistoryList();
+            showToast('已删除', 'success');
+        }
+
+        // 创建新活动
+        function createNewActivity() {
+            currentActivityId = null;
+            activityData = {
+                input: '',
+                elements: null,
+                plan: null,
+                flow: null,
+                ppt: null,
+                createdAt: null,
+                updatedAt: null,
+                title: '未命名活动'
+            };
+
+            // 重置界面
+            document.getElementById('activityInput').value = '';
+            document.getElementById('elementsContent').innerHTML = '<div class="empty-state"><p>请先在上方输入活动信息并点击生成</p></div>';
+            document.getElementById('planContent').innerHTML = '<div class="empty-state"><p>请先完成活动要素总结</p></div>';
+            document.getElementById('flowContent').innerHTML = '<div class="empty-state"><p>请先完成活动规划</p></div>';
+            document.getElementById('pptContent').innerHTML = '<div class="empty-state"><p>请先完成活动流程</p></div>';
+
+            // 重置状态
+            updateStatus('step1', 'pending');
+            updateStatus('step2', 'pending');
+            updateStatus('step3', 'pending');
+            updateStatus('step4', 'pending');
+            updateStatus('step5', 'pending');
+
+            // 禁用按钮
+            document.getElementById('btnGenPlan').disabled = true;
+            document.getElementById('btnGenFlow').disabled = true;
+            document.getElementById('btnGenPPT').disabled = true;
+
+            // 重置进度条
+            updateProgress(1);
+
+            loadHistoryList();
+        }
+
+        // 设置自动保存
+        function setupAutoSave() {
+            // 输入框内容变化时保存
+            document.getElementById('activityInput').addEventListener('input', function() {
+                activityData.input = this.value;
+                if (this.value.trim()) {
+                    // 延迟保存，避免频繁写入
+                    clearTimeout(window.autoSaveTimer);
+                    window.autoSaveTimer = setTimeout(() => {
+                        if (activityData.input.trim()) {
+                            saveCurrentActivity();
+                        }
+                    }, 2000);
+                }
+            });
+        }
+    </script>
 </body>
 </html>
